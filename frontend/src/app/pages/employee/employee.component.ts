@@ -44,8 +44,10 @@ import { ApiService } from '../../services/api.service';
             <td>{{ item.phone || '-' }}</td>
             <td>{{ (item.total_wages_earned || 0) | number:'1.2-2' }}</td>
             <td>{{ (item.total_paid || 0) | number:'1.2-2' }}</td>
-            <td [ngStyle]="{'color': (item.balance || 0) > 0 ? '#dc3545' : '#198754'}">
+            <td [ngStyle]="{'color': (item.balance || 0) > 0 ? '#dc3545' : (item.balance || 0) < 0 ? '#198754' : '#333'}">
               <strong>{{ (item.balance || 0) | number:'1.2-2' }}</strong>
+              <small *ngIf="(item.balance || 0) > 0" class="d-block text-muted" style="font-size:0.7rem;">They owe you</small>
+              <small *ngIf="(item.balance || 0) < 0" class="d-block text-muted" style="font-size:0.7rem;">You owe them</small>
             </td>
             <td style="white-space: nowrap;">
               <button class="btn btn-success btn-sm me-1" (click)="openPayModal(item)" title="Pay">
@@ -111,6 +113,12 @@ import { ApiService } from '../../services/api.service';
                   <div class="invalid-feedback">Status is required</div>
                 </div>
                 <div class="mb-3">
+                  <label class="form-label">Old Balance (Loan)</label>
+                  <input type="number" step="0.01" class="form-control" formControlName="old_balance"
+                    placeholder="e.g. 5000 if employee took loan">
+                  <small class="text-muted">Positive = employee owes you, Negative = you owe employee</small>
+                </div>
+                <div class="mb-3">
                   <label class="form-label">Remarks</label>
                   <textarea class="form-control" formControlName="remarks" rows="2"></textarea>
                 </div>
@@ -149,8 +157,10 @@ import { ApiService } from '../../services/api.service';
               </div>
               <div class="mb-3">
                 <strong>Current Balance:</strong>
-                <span [ngStyle]="{'color': (payingEmployee.balance || 0) > 0 ? '#dc3545' : '#198754'}">
+                <span [ngStyle]="{'color': (payingEmployee.balance || 0) > 0 ? '#dc3545' : (payingEmployee.balance || 0) < 0 ? '#198754' : '#333'}">
                   &#8377;{{ (payingEmployee.balance || 0) | number:'1.2-2' }}
+                  <small *ngIf="(payingEmployee.balance || 0) > 0">(They owe you)</small>
+                  <small *ngIf="(payingEmployee.balance || 0) < 0">(You owe them)</small>
                 </span>
               </div>
               <hr>
@@ -215,6 +225,7 @@ export class EmployeeComponent implements OnInit {
     address: new FormControl(''),
     joining_date: new FormControl('', Validators.required),
     status: new FormControl('', Validators.required),
+    old_balance: new FormControl<number>(0),
     remarks: new FormControl('')
   });
 
@@ -243,6 +254,7 @@ export class EmployeeComponent implements OnInit {
         address: item.address || '',
         joining_date: item.joining_date ? item.joining_date.substring(0, 10) : '',
         status: item.status,
+        old_balance: item.old_balance || 0,
         remarks: item.remarks || ''
       });
     } else {

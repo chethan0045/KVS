@@ -9,6 +9,7 @@ const employeeSchema = new Schema({
   joining_date: { type: Date, required: true },
   total_wages_earned: { type: Number, default: 0 },
   total_paid: { type: Number, default: 0 },
+  old_balance: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
   remarks: { type: String }
 }, { timestamps: true });

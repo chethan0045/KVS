@@ -29,18 +29,21 @@ router.get('/:id', async (req, res) => {
 // POST / - Create employee
 router.post('/', async (req, res) => {
   try {
-    const { name, phone, address, status, joining_date, remarks } = req.body;
+    const { name, phone, address, status, joining_date, old_balance, remarks } = req.body;
 
     if (!name || !joining_date) {
       return res.status(400).json({ error: 'name and joining_date are required' });
     }
 
+    const oldBal = Number(old_balance) || 0;
     const employee = new Employee({
       name,
       phone,
       address,
       status: status || 'active',
       joining_date,
+      old_balance: oldBal,
+      balance: oldBal,
       remarks
     });
 
@@ -59,7 +62,7 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Employee not found' });
     }
 
-    const { name, phone, address, status, joining_date, remarks } = req.body;
+    const { name, phone, address, status, joining_date, old_balance, remarks } = req.body;
 
     existing.name = name || existing.name;
     existing.phone = phone !== undefined ? phone : existing.phone;
@@ -67,6 +70,10 @@ router.put('/:id', async (req, res) => {
     existing.status = status || existing.status;
     existing.joining_date = joining_date || existing.joining_date;
     existing.remarks = remarks !== undefined ? remarks : existing.remarks;
+    if (old_balance !== undefined) {
+      existing.old_balance = Number(old_balance) || 0;
+    }
+    existing.balance = existing.total_wages_earned - existing.total_paid + existing.old_balance;
 
     const updated = await existing.save();
     res.json(updated);
@@ -90,7 +97,7 @@ router.post('/:id/pay', async (req, res) => {
     }
 
     employee.total_paid += amount;
-    employee.balance = employee.total_wages_earned - employee.total_paid;
+    employee.balance = employee.total_wages_earned - employee.total_paid + (employee.old_balance || 0);
 
     // Record the payment with exact timestamp
     const payment = new WagePayment({
