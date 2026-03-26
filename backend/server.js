@@ -50,17 +50,18 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// Start server after MongoDB connects
+// Log MongoDB connection status
 mongoose.connection.once('open', () => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  console.log('MongoDB connected successfully');
 });
 
-// Handle case where connection fails
 mongoose.connection.on('error', (err) => {
-  console.error('Failed to connect to MongoDB:', err);
-  process.exit(1);
+  console.error('MongoDB connection error:', err);
+});
+
+// Start server immediately (don't wait for MongoDB)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });
 
 module.exports = app;
