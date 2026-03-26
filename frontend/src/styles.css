@@ -303,6 +303,9 @@ body {
   border: none;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-custom .modal-header {
@@ -320,6 +323,8 @@ body {
 .modal-custom .modal-body {
   padding: 20px;
   background: #fff;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .modal-custom .modal-footer {

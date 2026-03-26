@@ -31,9 +31,6 @@ import { ApiService } from '../../services/api.service';
             <th>#</th>
             <th>Name</th>
             <th>Phone</th>
-            <th>Address</th>
-            <th>Joining Date</th>
-            <th>Status</th>
             <th>Total Earned (&#8377;)</th>
             <th>Total Paid (&#8377;)</th>
             <th>Balance (&#8377;)</th>
@@ -45,30 +42,19 @@ import { ApiService } from '../../services/api.service';
             <td>{{ i + 1 }}</td>
             <td><strong>{{ item.name }}</strong></td>
             <td>{{ item.phone || '-' }}</td>
-            <td>{{ item.address || '-' }}</td>
-            <td>{{ item.joining_date | date:'mediumDate' }}</td>
-            <td>
-              <span class="badge badge-status"
-                [ngClass]="{
-                  'bg-success': item.status === 'active',
-                  'bg-secondary': item.status === 'inactive'
-                }">
-                {{ item.status | titlecase }}
-              </span>
-            </td>
             <td>{{ (item.total_wages_earned || 0) | number:'1.2-2' }}</td>
             <td>{{ (item.total_paid || 0) | number:'1.2-2' }}</td>
             <td [ngStyle]="{'color': (item.balance || 0) > 0 ? '#dc3545' : '#198754'}">
               <strong>{{ (item.balance || 0) | number:'1.2-2' }}</strong>
             </td>
-            <td>
+            <td style="white-space: nowrap;">
               <button class="btn btn-success btn-sm me-1" (click)="openPayModal(item)" title="Pay">
                 <i class="fas fa-rupee-sign"></i>
               </button>
-              <button class="btn btn-warning btn-sm me-1" (click)="openModal(item)">
+              <button class="btn btn-warning btn-sm me-1" (click)="openModal(item)" title="Edit">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="btn btn-danger btn-sm" (click)="confirmDelete(item)">
+              <button class="btn btn-danger btn-sm" (click)="confirmDelete(item)" title="Delete">
                 <i class="fas fa-trash"></i>
               </button>
             </td>

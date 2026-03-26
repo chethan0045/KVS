@@ -43,7 +43,12 @@ import { ApiService } from '../../services/api.service';
           <tr *ngFor="let item of customers; let i = index">
             <td>{{ i + 1 }}</td>
             <td><strong>{{ item.name }}</strong></td>
-            <td>{{ item.phone || '-' }}</td>
+            <td>
+              <a *ngIf="item.phone" [href]="'tel:' + item.phone" style="color: #0d6efd; text-decoration: none;">
+                <i class="fas fa-phone me-1"></i>{{ item.phone }}
+              </a>
+              <span *ngIf="!item.phone">-</span>
+            </td>
             <td>{{ item.address || '-' }}</td>
             <td>{{ (item.total_bricks_bought || 0) | number:'1.0-0' }}</td>
             <td>{{ (item.total_amount || 0) | number:'1.2-2' }}</td>
