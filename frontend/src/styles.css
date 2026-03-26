@@ -297,14 +297,40 @@ body {
   margin: 0 15px;
 }
 
+.modal-custom .modal-content {
+  background: #fff;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
 .modal-custom .modal-header {
   background: var(--sidebar-bg);
   color: #fff;
-  border-radius: 8px 8px 0 0;
+  border-radius: 0;
+  padding: 15px 20px;
+  border-bottom: none;
 }
 
 .modal-custom .modal-header .btn-close {
   filter: invert(1);
+}
+
+.modal-custom .modal-body {
+  padding: 20px;
+  background: #fff;
+}
+
+.modal-custom .modal-footer {
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+}
+
+/* Payment modal green header */
+.modal-custom .modal-header.pay-header {
+  background: #198754;
 }
 
 /* Alerts */

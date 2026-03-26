@@ -87,7 +87,7 @@ import { ApiService } from '../../services/api.service';
       <div class="modal-backdrop-custom" (click)="closeModal()"></div>
       <div class="modal-custom">
         <div class="modal-dialog">
-          <div class="modal-content" style="border-radius: 8px; border: none;">
+          <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">{{ editingItem ? 'Edit' : 'Add' }} Employee</h5>
               <button type="button" class="btn-close" (click)="closeModal()"></button>
@@ -146,8 +146,8 @@ import { ApiService } from '../../services/api.service';
       <div class="modal-backdrop-custom" (click)="showPayModal = false"></div>
       <div class="modal-custom">
         <div class="modal-dialog">
-          <div class="modal-content" style="border-radius: 8px; border: none;">
-            <div class="modal-header" style="background-color: #198754; color: white;">
+          <div class="modal-content">
+            <div class="modal-header pay-header">
               <h5 class="modal-title">Pay Employee</h5>
               <button type="button" class="btn-close" (click)="showPayModal = false"></button>
             </div>
@@ -190,7 +190,7 @@ import { ApiService } from '../../services/api.service';
       <div class="modal-backdrop-custom" (click)="showDeleteConfirm = false"></div>
       <div class="modal-custom">
         <div class="modal-dialog">
-          <div class="modal-content" style="border-radius: 8px; border: none;">
+          <div class="modal-content">
             <div class="modal-header bg-danger text-white">
               <h5 class="modal-title">Confirm Delete</h5>
               <button type="button" class="btn-close" (click)="showDeleteConfirm = false"></button>
