@@ -139,7 +139,7 @@ import { ApiService } from '../../services/api.service';
               <td>{{ row.total_brick_load_wages | number:'1.2-2' }}</td>
               <td><strong>{{ row.grand_total | number:'1.2-2' }}</strong></td>
               <td>{{ row.total_paid | number:'1.2-2' }}</td>
-              <td [ngStyle]="{'color': row.balance > 0 ? '#dc3545' : '#198754'}">
+              <td [ngStyle]="{'color': row.balance > 0 ? '#198754' : row.balance < 0 ? '#dc3545' : '#333'}">
                 <strong>{{ row.balance | number:'1.2-2' }}</strong>
               </td>
               <td>
@@ -232,7 +232,7 @@ import { ApiService } from '../../services/api.service';
                         <td>{{ p.paid_at | date:'mediumDate' }}</td>
                         <td>{{ p.paid_at | date:'h:mm:ss a' }}</td>
                         <td style="color: #198754;"><strong>&#8377;{{ p.amount | number:'1.2-2' }}</strong></td>
-                        <td [ngStyle]="{'color': p.running_balance > 0 ? '#dc3545' : '#198754'}">
+                        <td [ngStyle]="{'color': p.running_balance > 0 ? '#198754' : p.running_balance < 0 ? '#dc3545' : '#333'}">
                           <strong>&#8377;{{ p.running_balance | number:'1.2-2' }}</strong>
                         </td>
                       </tr>
@@ -393,7 +393,7 @@ export class WagesReportComponent implements OnInit {
       <div class="summary-row"><span class="summary-label">Brick Load Wages:</span><span>Rs. ${formatNum(row.total_brick_load_wages)}</span></div>
       <div class="summary-row total-row"><span>Total Wages Earned:</span><span>Rs. ${formatNum(row.grand_total)}</span></div>
       <div class="summary-row"><span class="summary-label">Total Paid:</span><span>Rs. ${formatNum(row.total_paid)}</span></div>
-      <div class="summary-row total-row"><span>Balance Due:</span><span style="color: ${row.balance > 0 ? '#dc3545' : '#198754'}">Rs. ${formatNum(row.balance)}</span></div>
+      <div class="summary-row total-row"><span>Balance Due:</span><span style="color: ${row.balance > 0 ? '#198754' : row.balance < 0 ? '#dc3545' : '#333'}">Rs. ${formatNum(row.balance)}</span></div>
     </div>
 
     <h2>Daily Breakdown</h2>
@@ -437,7 +437,7 @@ export class WagesReportComponent implements OnInit {
           <td>${dateStr}</td>
           <td>${timeStr}</td>
           <td style="color: #198754; font-weight: bold;">Rs. ${formatNum(p.amount)}</td>
-          <td style="color: ${runningBalance > 0 ? '#dc3545' : '#198754'}; font-weight: bold;">Rs. ${formatNum(runningBalance)}</td>
+          <td style="color: ${runningBalance > 0 ? '#198754' : runningBalance < 0 ? '#dc3545' : '#333'}; font-weight: bold;">Rs. ${formatNum(runningBalance)}</td>
         </tr>`;
       }
       html += `</table>`;
