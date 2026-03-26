@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(cd:*)",
+      "Bash(timeout 5 node server.js)",
+      "Bash(node -e \":*)",
+      "Bash(node:*)",
+      "Bash(grep -E \"\\\\.\\(js|ts\\)$\")",
+      "Bash(ipconfig)",
+      "Bash(npx --yes pwa-asset-generator src/assets/kvs-logo.png src/assets/icons --icon-only --maskable --type png --padding \"10%\")",
+      "Bash(npx --yes sharp-cli resize 72 72 -i src/assets/kvs-logo.png -o src/assets/icons/icon-72x72.png)",
+      "Bash(npx ng:*)",
+      "Bash(ls:*)",
+      "Bash(npm ls:*)"
+    ]
+  }
+}

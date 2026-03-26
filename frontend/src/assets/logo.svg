@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="56" fill="#c0392b" stroke="#8B4513" stroke-width="3"/>
+
+  <!-- Brick wall pattern -->
+  <!-- Row 1 -->
+  <rect x="22" y="32" width="28" height="14" rx="2" fill="#e74c3c" stroke="#fff" stroke-width="1"/>
+  <rect x="53" y="32" width="28" height="14" rx="2" fill="#e74c3c" stroke="#fff" stroke-width="1"/>
+  <rect x="84" y="32" width="14" height="14" rx="2" fill="#e74c3c" stroke="#fff" stroke-width="1"/>
+
+  <!-- Row 2 (offset) -->
+  <rect x="22" y="49" width="14" height="14" rx="2" fill="#d35400" stroke="#fff" stroke-width="1"/>
+  <rect x="39" y="49" width="28" height="14" rx="2" fill="#d35400" stroke="#fff" stroke-width="1"/>
+  <rect x="70" y="49" width="28" height="14" rx="2" fill="#d35400" stroke="#fff" stroke-width="1"/>
+
+  <!-- Row 3 -->
+  <rect x="22" y="66" width="28" height="14" rx="2" fill="#e74c3c" stroke="#fff" stroke-width="1"/>
+  <rect x="53" y="66" width="28" height="14" rx="2" fill="#e74c3c" stroke="#fff" stroke-width="1"/>
+  <rect x="84" y="66" width="14" height="14" rx="2" fill="#e74c3c" stroke="#fff" stroke-width="1"/>
+
+  <!-- Row 4 (offset) -->
+  <rect x="22" y="83" width="14" height="5" rx="1" fill="#d35400" stroke="#fff" stroke-width="0.5"/>
+  <rect x="39" y="83" width="28" height="5" rx="1" fill="#d35400" stroke="#fff" stroke-width="0.5"/>
+  <rect x="70" y="83" width="28" height="5" rx="1" fill="#d35400" stroke="#fff" stroke-width="0.5"/>
+</svg>

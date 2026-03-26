@@ -1,0 +1,355 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { ApiService } from '../../services/api.service';
+
+@Component({
+  selector: 'app-employee',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
+  template: `
+    <!-- Alert -->
+    <div *ngIf="alertMessage" class="alert alert-floating" [ngClass]="'alert-' + alertType" role="alert">
+      {{ alertMessage }}
+      <button type="button" class="btn-close btn-sm float-end" (click)="alertMessage = ''"></button>
+    </div>
+
+    <div class="page-header">
+      <h2><i class="fas fa-users me-2"></i>Employees</h2>
+      <button class="btn btn-brick" (click)="openModal()">
+        <i class="fas fa-plus me-1"></i> Add New
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table class="table table-striped table-hover" *ngIf="employees.length > 0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Joining Date</th>
+            <th>Status</th>
+            <th>Total Earned (&#8377;)</th>
+            <th>Total Paid (&#8377;)</th>
+            <th>Balance (&#8377;)</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of employees; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td><strong>{{ item.name }}</strong></td>
+            <td>{{ item.phone || '-' }}</td>
+            <td>{{ item.address || '-' }}</td>
+            <td>{{ item.joining_date | date:'mediumDate' }}</td>
+            <td>
+              <span class="badge badge-status"
+                [ngClass]="{
+                  'bg-success': item.status === 'active',
+                  'bg-secondary': item.status === 'inactive'
+                }">
+                {{ item.status | titlecase }}
+              </span>
+            </td>
+            <td>{{ (item.total_wages_earned || 0) | number:'1.2-2' }}</td>
+            <td>{{ (item.total_paid || 0) | number:'1.2-2' }}</td>
+            <td [ngStyle]="{'color': (item.balance || 0) > 0 ? '#dc3545' : '#198754'}">
+              <strong>{{ (item.balance || 0) | number:'1.2-2' }}</strong>
+            </td>
+            <td>
+              <button class="btn btn-success btn-sm me-1" (click)="openPayModal(item)" title="Pay">
+                <i class="fas fa-rupee-sign"></i>
+              </button>
+              <button class="btn btn-warning btn-sm me-1" (click)="openModal(item)">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-danger btn-sm" (click)="confirmDelete(item)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div *ngIf="employees.length === 0" class="empty-state">
+        <i class="fas fa-users d-block"></i>
+        <p>No employee records found</p>
+        <button class="btn btn-brick btn-sm" (click)="openModal()">Add First Employee</button>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div *ngIf="showModal">
+      <div class="modal-backdrop-custom" (click)="closeModal()"></div>
+      <div class="modal-custom">
+        <div class="modal-dialog">
+          <div class="modal-content" style="border-radius: 8px; border: none;">
+            <div class="modal-header">
+              <h5 class="modal-title">{{ editingItem ? 'Edit' : 'Add' }} Employee</h5>
+              <button type="button" class="btn-close" (click)="closeModal()"></button>
+            </div>
+            <div class="modal-body">
+              <form [formGroup]="form">
+                <div class="mb-3">
+                  <label class="form-label">Name *</label>
+                  <input type="text" class="form-control" formControlName="name"
+                    [ngClass]="{'is-invalid': form.get('name')?.touched && form.get('name')?.invalid}">
+                  <div class="invalid-feedback">Name is required</div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Phone</label>
+                  <input type="text" class="form-control" formControlName="phone">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Address</label>
+                  <textarea class="form-control" formControlName="address" rows="2"></textarea>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Joining Date *</label>
+                  <input type="date" class="form-control" formControlName="joining_date"
+                    [ngClass]="{'is-invalid': form.get('joining_date')?.touched && form.get('joining_date')?.invalid}">
+                  <div class="invalid-feedback">Joining date is required</div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Status *</label>
+                  <select class="form-select" formControlName="status"
+                    [ngClass]="{'is-invalid': form.get('status')?.touched && form.get('status')?.invalid}">
+                    <option value="">Select status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                  <div class="invalid-feedback">Status is required</div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Remarks</label>
+                  <textarea class="form-control" formControlName="remarks" rows="2"></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+              <button type="button" class="btn btn-brick" (click)="save()" [disabled]="form.invalid">
+                <i class="fas fa-save me-1"></i> {{ editingItem ? 'Update' : 'Save' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pay Modal -->
+    <div *ngIf="showPayModal">
+      <div class="modal-backdrop-custom" (click)="showPayModal = false"></div>
+      <div class="modal-custom">
+        <div class="modal-dialog">
+          <div class="modal-content" style="border-radius: 8px; border: none;">
+            <div class="modal-header" style="background-color: #198754; color: white;">
+              <h5 class="modal-title">Pay Employee</h5>
+              <button type="button" class="btn-close" (click)="showPayModal = false"></button>
+            </div>
+            <div class="modal-body" *ngIf="payingEmployee">
+              <div class="mb-3">
+                <strong>Employee:</strong> {{ payingEmployee.name }}
+              </div>
+              <div class="mb-3">
+                <strong>Total Earned:</strong> &#8377;{{ (payingEmployee.total_wages_earned || 0) | number:'1.2-2' }}
+              </div>
+              <div class="mb-3">
+                <strong>Total Paid:</strong> &#8377;{{ (payingEmployee.total_paid || 0) | number:'1.2-2' }}
+              </div>
+              <div class="mb-3">
+                <strong>Current Balance:</strong>
+                <span [ngStyle]="{'color': (payingEmployee.balance || 0) > 0 ? '#dc3545' : '#198754'}">
+                  &#8377;{{ (payingEmployee.balance || 0) | number:'1.2-2' }}
+                </span>
+              </div>
+              <hr>
+              <div class="mb-3">
+                <label class="form-label">Payment Amount *</label>
+                <input type="number" class="form-control" [(ngModel)]="payAmount" min="0" step="0.01"
+                  placeholder="Enter amount to pay">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="showPayModal = false">Cancel</button>
+              <button type="button" class="btn btn-success" (click)="processPayment()" [disabled]="!payAmount || payAmount <= 0">
+                <i class="fas fa-rupee-sign me-1"></i> Pay
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation -->
+    <div *ngIf="showDeleteConfirm">
+      <div class="modal-backdrop-custom" (click)="showDeleteConfirm = false"></div>
+      <div class="modal-custom">
+        <div class="modal-dialog">
+          <div class="modal-content" style="border-radius: 8px; border: none;">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title">Confirm Delete</h5>
+              <button type="button" class="btn-close" (click)="showDeleteConfirm = false"></button>
+            </div>
+            <div class="modal-body">
+              <p>Are you sure you want to delete employee <strong>{{ deletingItem?.name }}</strong>?</p>
+              <p class="text-muted mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="showDeleteConfirm = false">Cancel</button>
+              <button type="button" class="btn btn-danger" (click)="deleteItem()">
+                <i class="fas fa-trash me-1"></i> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+})
+export class EmployeeComponent implements OnInit {
+  employees: any[] = [];
+  showModal = false;
+  showDeleteConfirm = false;
+  showPayModal = false;
+  editingItem: any = null;
+  deletingItem: any = null;
+  payingEmployee: any = null;
+  payAmount: number = 0;
+  alertMessage = '';
+  alertType = 'success';
+
+  form = new FormGroup({
+    name: new FormControl('', Validators.required),
+    phone: new FormControl(''),
+    address: new FormControl(''),
+    joining_date: new FormControl('', Validators.required),
+    status: new FormControl('', Validators.required),
+    remarks: new FormControl('')
+  });
+
+  constructor(private apiService: ApiService) {}
+
+  ngOnInit(): void {
+    this.loadData();
+  }
+
+  loadData(): void {
+    this.apiService.getEmployees().subscribe({
+      next: (data) => this.employees = data,
+      error: (err) => {
+        console.error('Error:', err);
+        this.showAlert('Failed to load employees', 'danger');
+      }
+    });
+  }
+
+  openModal(item?: any): void {
+    this.editingItem = item || null;
+    if (item) {
+      this.form.patchValue({
+        name: item.name,
+        phone: item.phone || '',
+        address: item.address || '',
+        joining_date: item.joining_date ? item.joining_date.substring(0, 10) : '',
+        status: item.status,
+        remarks: item.remarks || ''
+      });
+    } else {
+      this.form.reset();
+      this.form.patchValue({ status: 'active' });
+    }
+    this.showModal = true;
+  }
+
+  closeModal(): void {
+    this.showModal = false;
+    this.editingItem = null;
+    this.form.reset();
+  }
+
+  save(): void {
+    if (this.form.invalid) return;
+    const data = this.form.value;
+
+    if (this.editingItem) {
+      this.apiService.updateEmployee(this.editingItem._id, data).subscribe({
+        next: () => {
+          this.showAlert('Employee updated successfully', 'success');
+          this.closeModal();
+          this.loadData();
+        },
+        error: (err) => {
+          console.error('Error:', err);
+          this.showAlert('Failed to update employee', 'danger');
+        }
+      });
+    } else {
+      this.apiService.createEmployee(data).subscribe({
+        next: () => {
+          this.showAlert('Employee created successfully', 'success');
+          this.closeModal();
+          this.loadData();
+        },
+        error: (err) => {
+          console.error('Error:', err);
+          this.showAlert('Failed to create employee', 'danger');
+        }
+      });
+    }
+  }
+
+  openPayModal(item: any): void {
+    this.payingEmployee = item;
+    this.payAmount = 0;
+    this.showPayModal = true;
+  }
+
+  processPayment(): void {
+    if (!this.payingEmployee || this.payAmount <= 0) return;
+    this.apiService.payEmployee(this.payingEmployee._id, this.payAmount).subscribe({
+      next: () => {
+        this.showAlert('Payment recorded successfully', 'success');
+        this.showPayModal = false;
+        this.payingEmployee = null;
+        this.payAmount = 0;
+        this.loadData();
+      },
+      error: (err) => {
+        this.showAlert('Failed to process payment', 'danger');
+      }
+    });
+  }
+
+  confirmDelete(item: any): void {
+    this.deletingItem = item;
+    this.showDeleteConfirm = true;
+  }
+
+  deleteItem(): void {
+    if (!this.deletingItem) return;
+    this.apiService.deleteEmployee(this.deletingItem._id).subscribe({
+      next: () => {
+        this.showAlert('Employee deleted successfully', 'success');
+        this.showDeleteConfirm = false;
+        this.deletingItem = null;
+        this.loadData();
+      },
+      error: (err) => {
+        console.error('Error:', err);
+        this.showAlert('Failed to delete employee', 'danger');
+        this.showDeleteConfirm = false;
+      }
+    });
+  }
+
+  showAlert(message: string, type: string): void {
+    this.alertMessage = message;
+    this.alertType = type;
+    setTimeout(() => this.alertMessage = '', 3000);
+  }
+}
