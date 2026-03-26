@@ -44,10 +44,8 @@ import { ApiService } from '../../services/api.service';
             <td>{{ item.phone || '-' }}</td>
             <td>{{ (item.total_wages_earned || 0) | number:'1.2-2' }}</td>
             <td>{{ (item.total_paid || 0) | number:'1.2-2' }}</td>
-            <td [ngStyle]="{'color': (item.balance || 0) > 0 ? '#dc3545' : (item.balance || 0) < 0 ? '#198754' : '#333'}">
+            <td [ngStyle]="{'color': (item.balance || 0) > 0 ? '#198754' : (item.balance || 0) < 0 ? '#dc3545' : '#333'}">
               <strong>{{ (item.balance || 0) | number:'1.2-2' }}</strong>
-              <small *ngIf="(item.balance || 0) > 0" class="d-block text-muted" style="font-size:0.7rem;">They owe you</small>
-              <small *ngIf="(item.balance || 0) < 0" class="d-block text-muted" style="font-size:0.7rem;">You owe them</small>
             </td>
             <td style="white-space: nowrap;">
               <button class="btn btn-success btn-sm me-1" (click)="openPayModal(item)" title="Pay">
@@ -157,10 +155,8 @@ import { ApiService } from '../../services/api.service';
               </div>
               <div class="mb-3">
                 <strong>Current Balance:</strong>
-                <span [ngStyle]="{'color': (payingEmployee.balance || 0) > 0 ? '#dc3545' : (payingEmployee.balance || 0) < 0 ? '#198754' : '#333'}">
+                <span [ngStyle]="{'color': (payingEmployee.balance || 0) > 0 ? '#198754' : (payingEmployee.balance || 0) < 0 ? '#dc3545' : '#333'}">
                   &#8377;{{ (payingEmployee.balance || 0) | number:'1.2-2' }}
-                  <small *ngIf="(payingEmployee.balance || 0) > 0">(They owe you)</small>
-                  <small *ngIf="(payingEmployee.balance || 0) < 0">(You owe them)</small>
                 </span>
               </div>
               <hr>
