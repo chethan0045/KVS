@@ -5,7 +5,7 @@ const MONGO_URI = 'mongodb+srv://todoUser:chethan45@cluster0.etbmi2g.mongodb.net
 mongoose.connect(MONGO_URI, {
   tls: true,
   tlsAllowInvalidCertificates: false,
-  serverSelectionTimeoutMS: 10000,
+  serverSelectionTimeoutMS: 30000,
 });
 
 const db = mongoose.connection;

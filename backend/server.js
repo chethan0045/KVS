@@ -44,10 +44,23 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve Angular frontend (production build)
-const frontendPath = path.join(__dirname, '..', 'frontend', 'dist', 'bricks-management-system', 'browser');
+const fs = require('fs');
+const distBase = path.join(__dirname, '..', 'frontend', 'dist', 'bricks-management-system');
+const frontendPath = fs.existsSync(path.join(distBase, 'browser'))
+  ? path.join(distBase, 'browser')
+  : distBase;
+
+console.log('Frontend path:', frontendPath);
+console.log('Frontend exists:', fs.existsSync(frontendPath));
+
 app.use(express.static(frontendPath));
 app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  const indexPath = path.join(frontendPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(500).send('Frontend not built. index.html not found at: ' + indexPath);
+  }
 });
 
 // Log MongoDB connection status
