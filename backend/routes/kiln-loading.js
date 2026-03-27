@@ -63,9 +63,13 @@ router.post('/', async (req, res) => {
     const addedWages = quantity_loaded * 0.55;
 
     // Check if there's an existing active loading for this kiln
-    const existing = await KilnLoading.findOne({ kiln_number, status: { $in: ['loading', 'firing'] } });
+    const existing = await KilnLoading.findOne({ kiln_number });
 
-    if (existing) {
+    if (existing && (existing.status === 'firing' || existing.status === 'ready')) {
+      return res.status(400).json({ error: `Kiln ${kiln_number} is currently ${existing.status}. Cannot load bricks until it is archived or emptied.` });
+    }
+
+    if (existing && existing.status === 'loading') {
       // Add to existing kiln loading
       existing.quantity_loaded += quantity_loaded;
       existing.total_wages += addedWages;
