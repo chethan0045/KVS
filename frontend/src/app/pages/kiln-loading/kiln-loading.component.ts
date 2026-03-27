@@ -71,11 +71,15 @@ import { ApiService } from '../../services/api.service';
                 {{ item.status | titlecase }}
               </span>
             </td>
-            <td>
-              <button class="btn btn-warning btn-sm me-1" (click)="openModal(item)">
+            <td style="white-space: nowrap;">
+              <button class="btn btn-info btn-sm me-1" (click)="archiveKiln(item)" title="Archive to Old Records"
+                *ngIf="item.status === 'ready'">
+                <i class="fas fa-archive"></i>
+              </button>
+              <button class="btn btn-warning btn-sm me-1" (click)="openModal(item)" title="Edit">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="btn btn-danger btn-sm" (click)="confirmDelete(item)">
+              <button class="btn btn-danger btn-sm" (click)="confirmDelete(item)" title="Delete">
                 <i class="fas fa-trash"></i>
               </button>
             </td>
@@ -347,6 +351,21 @@ export class KilnLoadingComponent implements OnInit {
         console.error('Error:', err);
         this.showAlert('Failed to delete kiln loading', 'danger');
         this.showDeleteConfirm = false;
+      }
+    });
+  }
+
+  archiveKiln(item: any): void {
+    if (!confirm(`Archive Kiln ${item.kiln_number}? This will move all data (loading, manufactures, sales) to Old Records and remove it from here.`)) {
+      return;
+    }
+    this.apiService.createArchive({ kiln_loading_id: item._id }).subscribe({
+      next: () => {
+        this.showAlert('Kiln ' + item.kiln_number + ' archived to Old Records', 'success');
+        this.loadData();
+      },
+      error: (err) => {
+        this.showAlert(err.error?.error || 'Failed to archive', 'danger');
       }
     });
   }

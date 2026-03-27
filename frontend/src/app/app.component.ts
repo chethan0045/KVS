@@ -77,6 +77,12 @@ import { AuthService } from './services/auth.service';
               <span>Wages Report</span>
             </a>
           </li>
+          <li>
+            <a routerLink="/old-records" routerLinkActive="active" (click)="closeSidebar()">
+              <i class="fas fa-archive"></i>
+              <span>Old Records</span>
+            </a>
+          </li>
         </ul>
         <div class="sidebar-footer">
           <div class="user-info">

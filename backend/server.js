@@ -15,6 +15,7 @@ const employeeRoutes = require('./routes/employee');
 const wagesReportRoutes = require('./routes/wages-report');
 const customerRoutes = require('./routes/customer');
 const huskLoadRoutes = require('./routes/husk-load');
+const archiveRoutes = require('./routes/archive');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,7 @@ app.use('/api/employees', authMiddleware, employeeRoutes);
 app.use('/api/wages-report', authMiddleware, wagesReportRoutes);
 app.use('/api/customers', authMiddleware, customerRoutes);
 app.use('/api/husk-loads', authMiddleware, huskLoadRoutes);
+app.use('/api/archives', authMiddleware, archiveRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

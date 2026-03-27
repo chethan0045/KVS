@@ -9,6 +9,7 @@ import { WagesReportComponent } from './pages/wages-report/wages-report.componen
 import { CustomerComponent } from './pages/customer/customer.component';
 import { HuskLoadComponent } from './pages/husk-load/husk-load.component';
 import { LoginComponent } from './pages/login/login.component';
+import { OldRecordsComponent } from './pages/old-records/old-records.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -22,5 +23,6 @@ export const routes: Routes = [
   { path: 'wages-report', component: WagesReportComponent, canActivate: [authGuard] },
   { path: 'customers', component: CustomerComponent, canActivate: [authGuard] },
   { path: 'husk-loads', component: HuskLoadComponent, canActivate: [authGuard] },
+  { path: 'old-records', component: OldRecordsComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '' }
 ];

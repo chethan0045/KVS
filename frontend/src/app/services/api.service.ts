@@ -149,4 +149,10 @@ export class ApiService {
   updateHuskLoad(id: string, data: any): Observable<any> { return this.http.put(`${this.baseUrl}/husk-loads/${id}`, data); }
   deleteHuskLoad(id: string): Observable<any> { return this.http.delete(`${this.baseUrl}/husk-loads/${id}`); }
   payHuskLoad(id: string, amount: number): Observable<any> { return this.http.post(`${this.baseUrl}/husk-loads/${id}/pay`, { amount }); }
+
+  // Archives
+  getArchives(): Observable<any> { return this.http.get(`${this.baseUrl}/archives`); }
+  getArchive(id: string): Observable<any> { return this.http.get(`${this.baseUrl}/archives/${id}`); }
+  createArchive(data: any): Observable<any> { return this.http.post(`${this.baseUrl}/archives`, data); }
+  deleteArchive(id: string): Observable<any> { return this.http.delete(`${this.baseUrl}/archives/${id}`); }
 }
