@@ -6,6 +6,7 @@ const KilnLoading = require('../models/KilnLoading');
 const KilnManufacture = require('../models/KilnManufacture');
 const BrickSale = require('../models/BrickSale');
 const WagePayment = require('../models/WagePayment');
+const Archive = require('../models/Archive');
 
 // GET / - Wages report per employee
 router.get('/', async (req, res) => {
@@ -53,7 +54,7 @@ router.get('/', async (req, res) => {
     const paymentQuery = {};
     if (employee_id) paymentQuery.employee_id = employee_id;
 
-    const [productions, loadings, manufactures, sales, employees, payments] = await Promise.all([
+    const [productions, loadings, manufactures, sales, employees, payments, archives] = await Promise.all([
       BrickProduction.find(prodQuery).populate('employee_id').lean(),
       KilnLoading.find(loadingQuery).populate('employees').lean(),
       KilnManufacture.find(manufactureQuery).populate('employees').lean(),
@@ -61,7 +62,8 @@ router.get('/', async (req, res) => {
       employee_id
         ? Employee.find({ _id: employee_id }).lean()
         : Employee.find().sort({ name: 1 }).lean(),
-      WagePayment.find(paymentQuery).sort({ paid_at: 1 }).lean()
+      WagePayment.find(paymentQuery).sort({ paid_at: 1 }).lean(),
+      Archive.find().lean()
     ]);
 
     // Build wages map per employee
@@ -236,6 +238,80 @@ router.get('/', async (req, res) => {
             sale_date: sale.sale_date, customer: customerName, quantity: sale.quantity_sold,
             role: 'Helper', wages_earned: helperWage
           });
+        }
+      }
+    }
+
+    // Process archived data (kiln loadings, manufactures, sales from archives)
+    for (const arch of archives) {
+      // Archived kiln loading wages
+      if (arch.kiln_loading && arch.kiln_loading.employees && arch.kiln_loading.employees.length > 0) {
+        const perEmpWage = (arch.kiln_loading.total_wages || 0) / arch.kiln_loading.employees.length;
+        for (const emp of arch.kiln_loading.employees) {
+          const empId = (emp._id || emp).toString();
+          if (employee_id && empId !== employee_id) continue;
+          if (wagesMap[empId]) {
+            wagesMap[empId].total_loading_wages += perEmpWage;
+            wagesMap[empId].loading_details.push({
+              kiln_number: arch.kiln_loading.kiln_number,
+              loading_date: arch.kiln_loading.loading_date,
+              quantity_loaded: arch.kiln_loading.quantity_loaded,
+              employees_count: arch.kiln_loading.employees.length,
+              wages_earned: perEmpWage
+            });
+          }
+        }
+      }
+
+      // Archived manufacture wages
+      for (const mfg of (arch.manufactures || [])) {
+        if (!mfg.employees || mfg.employees.length === 0) continue;
+        const perEmpWage = (mfg.total_wages || 0) / mfg.employees.length;
+        for (const emp of mfg.employees) {
+          const empId = (emp._id || emp).toString();
+          if (employee_id && empId !== employee_id) continue;
+          if (wagesMap[empId]) {
+            wagesMap[empId].total_manufacturing_wages += perEmpWage;
+            wagesMap[empId].manufacturing_details.push({
+              manufacture_date: mfg.manufacture_date,
+              work_type: mfg.quality_grade || 'Kiln Work',
+              employees_count: mfg.employees.length,
+              wages_earned: perEmpWage
+            });
+          }
+        }
+      }
+
+      // Archived sale wages (driver/helper)
+      for (const sale of (arch.sales || [])) {
+        const customerName = sale.customer_id && typeof sale.customer_id === 'object' ? sale.customer_id.name : '';
+        if (sale.driver_id) {
+          const driverId = (typeof sale.driver_id === 'object' ? sale.driver_id._id : sale.driver_id).toString();
+          if (!employee_id || driverId === employee_id) {
+            const driverWage = sale.driver_wage || 750;
+            if (wagesMap[driverId]) {
+              wagesMap[driverId].total_brick_load_wages += driverWage;
+              if (!wagesMap[driverId].brick_load_details) wagesMap[driverId].brick_load_details = [];
+              wagesMap[driverId].brick_load_details.push({
+                sale_date: sale.sale_date, customer: customerName, quantity: sale.quantity_sold,
+                role: 'Driver', wages_earned: driverWage
+              });
+            }
+          }
+        }
+        if (sale.helper_id) {
+          const helperId = (typeof sale.helper_id === 'object' ? sale.helper_id._id : sale.helper_id).toString();
+          if (!employee_id || helperId === employee_id) {
+            const helperWage = sale.helper_wage || 500;
+            if (wagesMap[helperId]) {
+              wagesMap[helperId].total_brick_load_wages += helperWage;
+              if (!wagesMap[helperId].brick_load_details) wagesMap[helperId].brick_load_details = [];
+              wagesMap[helperId].brick_load_details.push({
+                sale_date: sale.sale_date, customer: customerName, quantity: sale.quantity_sold,
+                role: 'Helper', wages_earned: helperWage
+              });
+            }
+          }
         }
       }
     }

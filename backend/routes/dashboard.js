@@ -7,6 +7,7 @@ const BrickSale = require('../models/BrickSale');
 const Employee = require('../models/Employee');
 const HuskLoad = require('../models/HuskLoad');
 const Customer = require('../models/Customer');
+const Archive = require('../models/Archive');
 
 // GET / - Dashboard summary stats
 router.get('/', async (req, res) => {
@@ -27,7 +28,8 @@ router.get('/', async (req, res) => {
       recentProductions,
       recentLoadings,
       recentManufactures,
-      recentSales
+      recentSales,
+      archives
     ] = await Promise.all([
       BrickProduction.aggregate([
         { $group: { _id: null, total: { $sum: '$quantity' } } }
@@ -73,19 +75,35 @@ router.get('/', async (req, res) => {
       BrickProduction.find().sort({ createdAt: -1 }).limit(5).lean(),
       KilnLoading.find().sort({ createdAt: -1 }).limit(5).lean(),
       KilnManufacture.find().sort({ createdAt: -1 }).limit(5).lean(),
-      BrickSale.find().sort({ createdAt: -1 }).limit(5).lean()
+      BrickSale.find().sort({ createdAt: -1 }).limit(5).lean(),
+      Archive.find().lean()
     ]);
+
+    // Aggregate archived data
+    let archivedSold = 0, archivedRevenue = 0, archivedLoadingWages = 0, archivedManufactureWages = 0;
+    for (const arch of archives) {
+      if (arch.kiln_loading) {
+        archivedLoadingWages += arch.kiln_loading.total_wages || 0;
+      }
+      for (const s of (arch.sales || [])) {
+        archivedSold += s.quantity_sold || 0;
+        archivedRevenue += s.total_amount || 0;
+      }
+      for (const m of (arch.manufactures || [])) {
+        archivedManufactureWages += m.total_wages || 0;
+      }
+    }
 
     const totalProduced = totalProducedResult.length > 0 ? totalProducedResult[0].total : 0;
     const totalInKiln = totalInKilnResult.length > 0 ? totalInKilnResult[0].total : 0;
     const totalInFire = totalInFireResult.length > 0 ? totalInFireResult[0].total : 0;
     const totalReady = totalReadyResult.length > 0 ? totalReadyResult[0].total : 0;
-    const totalSold = totalSoldResult.length > 0 ? totalSoldResult[0].total : 0;
-    const totalRevenue = totalRevenueResult.length > 0 ? totalRevenueResult[0].total : 0;
+    const totalSold = (totalSoldResult.length > 0 ? totalSoldResult[0].total : 0) + archivedSold;
+    const totalRevenue = (totalRevenueResult.length > 0 ? totalRevenueResult[0].total : 0) + archivedRevenue;
 
     const totalProductionWages = totalProductionWagesResult.length > 0 ? totalProductionWagesResult[0].total : 0;
-    const totalLoadingWages = totalLoadingWagesResult.length > 0 ? totalLoadingWagesResult[0].total : 0;
-    const totalManufactureWages = totalManufactureWagesResult.length > 0 ? totalManufactureWagesResult[0].total : 0;
+    const totalLoadingWages = (totalLoadingWagesResult.length > 0 ? totalLoadingWagesResult[0].total : 0) + archivedLoadingWages;
+    const totalManufactureWages = (totalManufactureWagesResult.length > 0 ? totalManufactureWagesResult[0].total : 0) + archivedManufactureWages;
     const wagesBalance = wagesBalanceResult.length > 0 ? wagesBalanceResult[0].total : 0;
 
     const huskTotalCost = huskResult.length > 0 ? huskResult[0].total_cost : 0;
