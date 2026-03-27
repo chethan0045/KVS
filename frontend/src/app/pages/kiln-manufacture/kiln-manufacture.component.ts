@@ -16,9 +16,14 @@ import { ApiService } from '../../services/api.service';
 
     <div class="page-header">
       <h2><i class="fas fa-fire me-2"></i>Kilns &amp; Manufactured Bricks</h2>
-      <button class="btn btn-brick" (click)="openModal()">
-        <i class="fas fa-plus me-1"></i> Add Manufacture Record
-      </button>
+      <div>
+        <button class="btn btn-outline-danger me-2" (click)="downloadPDF()" *ngIf="manufactures.length > 0">
+          <i class="fas fa-file-pdf me-1"></i> PDF
+        </button>
+        <button class="btn btn-brick" (click)="openModal()">
+          <i class="fas fa-plus me-1"></i> Add Manufacture Record
+        </button>
+      </div>
     </div>
 
     <!-- 4 Kiln Visual Cards -->
@@ -459,6 +464,29 @@ export class KilnManufactureComponent implements OnInit {
         this.showDeleteConfirm = false;
       }
     });
+  }
+
+  downloadPDF(): void {
+    const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '-';
+    const getEmpNames = (item: any) => {
+      const ids = this.getEmployeeIds(item);
+      return ids.map(id => { const e = this.employees.find(emp => emp._id === id); return e ? e.name : ''; }).filter(n => n).join(', ') || '-';
+    };
+    let html = `<html><head><title>Kiln Manufacturing Report</title><style>
+      body{font-family:Arial,sans-serif;padding:20px;} h1{color:#c0392b;font-size:1.5rem;}
+      table{width:100%;border-collapse:collapse;margin-top:15px;} th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.85rem;}
+      th{background:#c0392b;color:#fff;} tr:nth-child(even){background:#f9f9f9;}
+      .header{display:flex;justify-content:space-between;align-items:center;} .date{color:#666;font-size:0.85rem;}
+    </style></head><body>
+    <div class="header"><h1>Kiln Manufacturing Report</h1><span class="date">Generated: ${new Date().toLocaleDateString('en-IN')}</span></div>
+    <table><tr><th>#</th><th>Kiln</th><th>Work Type</th><th>Employees</th><th>Date</th><th>Wages</th></tr>`;
+    this.manufactures.forEach((item, i) => {
+      html += `<tr><td>${i+1}</td><td>Kiln ${this.getKilnNumber(item.kiln_loading_id)}</td><td>${item.quality_grade}</td>
+        <td>${getEmpNames(item)}</td><td>${formatDate(item.manufacture_date)}</td><td>Rs.${(item.total_wages||0).toFixed(2)}</td></tr>`;
+    });
+    html += `</table></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   }
 
   showAlertMsg(message: string, type: string): void {

@@ -17,9 +17,14 @@ import { ApiService } from '../../services/api.service';
 
     <div class="page-header">
       <h2><i class="fas fa-seedling me-2"></i>Husk Loads</h2>
-      <button class="btn btn-brick" (click)="openModal()">
-        <i class="fas fa-plus me-1"></i> Add New
-      </button>
+      <div>
+        <button class="btn btn-outline-danger me-2" (click)="downloadPDF()" *ngIf="huskLoads.length > 0">
+          <i class="fas fa-file-pdf me-1"></i> PDF
+        </button>
+        <button class="btn btn-brick" (click)="openModal()">
+          <i class="fas fa-plus me-1"></i> Add New
+        </button>
+      </div>
     </div>
 
     <!-- Summary Cards -->
@@ -370,6 +375,28 @@ export class HuskLoadComponent implements OnInit {
       },
       error: () => { this.showAlert('Failed to delete', 'danger'); this.showDeleteConfirm = false; }
     });
+  }
+
+  downloadPDF(): void {
+    const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '-';
+    let html = `<html><head><title>Husk Loads Report</title><style>
+      body{font-family:Arial,sans-serif;padding:20px;} h1{color:#c0392b;font-size:1.5rem;}
+      table{width:100%;border-collapse:collapse;margin-top:15px;} th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.85rem;}
+      th{background:#c0392b;color:#fff;} tr:nth-child(even){background:#f9f9f9;}
+      .header{display:flex;justify-content:space-between;align-items:center;} .date{color:#666;font-size:0.85rem;}
+      .summary{margin-top:15px;font-size:0.95rem;} .summary span{font-weight:bold;}
+    </style></head><body>
+    <div class="header"><h1>Husk Loads Report</h1><span class="date">Generated: ${new Date().toLocaleDateString('en-IN')}</span></div>
+    <div class="summary">Total Cost: <span>Rs.${this.totalCost.toFixed(2)}</span> | Total Paid: <span>Rs.${this.totalPaid.toFixed(2)}</span> | Balance: <span style="color:#dc3545;">Rs.${this.totalBalance.toFixed(2)}</span></div>
+    <table><tr><th>#</th><th>Supplier</th><th>Tonnage</th><th>Price/Ton</th><th>Total</th><th>Paid</th><th>Balance</th><th>Date</th></tr>`;
+    this.huskLoads.forEach((item, i) => {
+      html += `<tr><td>${i+1}</td><td>${item.supplier_name||'-'}</td><td>${item.tonnage} T</td><td>Rs.${item.price_per_ton}</td>
+        <td>Rs.${(item.total_amount||0).toFixed(2)}</td><td>Rs.${(item.total_paid||0).toFixed(2)}</td>
+        <td>Rs.${(item.balance||0).toFixed(2)}</td><td>${formatDate(item.received_date)}</td></tr>`;
+    });
+    html += `</table></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   }
 
   showAlert(message: string, type: string): void {

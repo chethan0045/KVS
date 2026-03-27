@@ -18,9 +18,14 @@ import { ApiService } from '../../services/api.service';
 
     <div class="page-header">
       <h2><i class="fas fa-shopping-cart me-2"></i>Brick Sales</h2>
-      <button class="btn btn-brick" (click)="openModal()">
-        <i class="fas fa-plus me-1"></i> Add New
-      </button>
+      <div>
+        <button class="btn btn-outline-danger me-2" (click)="downloadPDF()" *ngIf="sales.length > 0">
+          <i class="fas fa-file-pdf me-1"></i> PDF
+        </button>
+        <button class="btn btn-brick" (click)="openModal()">
+          <i class="fas fa-plus me-1"></i> Add New
+        </button>
+      </div>
     </div>
 
     <!-- Table -->
@@ -515,6 +520,30 @@ export class BrickSalesComponent implements OnInit {
         this.showDeleteConfirm = false;
       }
     });
+  }
+
+  downloadPDF(): void {
+    const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '-';
+    let totalAmount = 0;
+    let html = `<html><head><title>Brick Sales Report</title><style>
+      body{font-family:Arial,sans-serif;padding:20px;} h1{color:#c0392b;font-size:1.5rem;}
+      table{width:100%;border-collapse:collapse;margin-top:15px;} th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.85rem;}
+      th{background:#c0392b;color:#fff;} tr:nth-child(even){background:#f9f9f9;}
+      .header{display:flex;justify-content:space-between;align-items:center;} .date{color:#666;font-size:0.85rem;}
+      .total{font-weight:bold;margin-top:10px;font-size:1rem;}
+    </style></head><body>
+    <div class="header"><h1>Brick Sales Report</h1><span class="date">Generated: ${new Date().toLocaleDateString('en-IN')}</span></div>
+    <table><tr><th>#</th><th>Customer</th><th>Kiln</th><th>Qty</th><th>Amount</th><th>Driver</th><th>Helper</th><th>Date</th><th>Payment</th></tr>`;
+    this.sales.forEach((item, i) => {
+      totalAmount += item.total_amount || 0;
+      html += `<tr><td>${i+1}</td><td>${this.getCustomerName(item.customer_id)}</td><td>${this.getKilnLabel(item.kiln_loading_id)}</td>
+        <td>${(item.quantity_sold||0).toLocaleString()}</td><td>Rs.${(item.total_amount||0).toFixed(2)}</td>
+        <td>${this.getEmployeeName(item.driver_id)}</td><td>${this.getEmployeeName(item.helper_id)}</td>
+        <td>${formatDate(item.sale_date)}</td><td>${item.payment_status}</td></tr>`;
+    });
+    html += `</table><p class="total">Total Sales: Rs.${totalAmount.toFixed(2)}</p></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   }
 
   showAlertMsg(message: string, type: string): void {

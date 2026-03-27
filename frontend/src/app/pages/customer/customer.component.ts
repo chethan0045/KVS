@@ -18,9 +18,14 @@ import { ApiService } from '../../services/api.service';
 
     <div class="page-header">
       <h2><i class="fas fa-user-tie me-2"></i>Customers</h2>
-      <button class="btn btn-brick" (click)="openModal()">
-        <i class="fas fa-plus me-1"></i> Add New
-      </button>
+      <div>
+        <button class="btn btn-outline-danger me-2" (click)="downloadPDF()" *ngIf="customers.length > 0">
+          <i class="fas fa-file-pdf me-1"></i> PDF
+        </button>
+        <button class="btn btn-brick" (click)="openModal()">
+          <i class="fas fa-plus me-1"></i> Add New
+        </button>
+      </div>
     </div>
 
     <!-- Table -->
@@ -320,6 +325,30 @@ export class CustomerComponent implements OnInit {
         this.showDeleteConfirm = false;
       }
     });
+  }
+
+  downloadPDF(): void {
+    let totalAmt = 0, totalPaid = 0, totalBal = 0;
+    let html = `<html><head><title>Customers Report</title><style>
+      body{font-family:Arial,sans-serif;padding:20px;} h1{color:#c0392b;font-size:1.5rem;}
+      table{width:100%;border-collapse:collapse;margin-top:15px;} th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.85rem;}
+      th{background:#c0392b;color:#fff;} tr:nth-child(even){background:#f9f9f9;}
+      .header{display:flex;justify-content:space-between;align-items:center;} .date{color:#666;font-size:0.85rem;}
+      .total{font-weight:bold;margin-top:10px;font-size:0.95rem;}
+    </style></head><body>
+    <div class="header"><h1>Customers Report</h1><span class="date">Generated: ${new Date().toLocaleDateString('en-IN')}</span></div>
+    <table><tr><th>#</th><th>Name</th><th>Phone</th><th>Bricks Bought</th><th>Total Amount</th><th>Paid</th><th>Balance</th></tr>`;
+    this.customers.forEach((item, i) => {
+      totalAmt += item.total_amount || 0;
+      totalPaid += item.total_paid || 0;
+      totalBal += item.balance || 0;
+      html += `<tr><td>${i+1}</td><td>${item.name}</td><td>${item.phone||'-'}</td>
+        <td>${(item.total_bricks_bought||0).toLocaleString()}</td><td>Rs.${(item.total_amount||0).toFixed(2)}</td>
+        <td>Rs.${(item.total_paid||0).toFixed(2)}</td><td>Rs.${(item.balance||0).toFixed(2)}</td></tr>`;
+    });
+    html += `</table><p class="total">Total: Rs.${totalAmt.toFixed(2)} | Paid: Rs.${totalPaid.toFixed(2)} | Balance: Rs.${totalBal.toFixed(2)}</p></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   }
 
   showAlert(message: string, type: string): void {

@@ -17,9 +17,14 @@ import { ApiService } from '../../services/api.service';
 
     <div class="page-header">
       <h2><i class="fas fa-truck-loading me-2"></i>Kiln Loading</h2>
-      <button class="btn btn-brick" (click)="openModal()">
-        <i class="fas fa-plus me-1"></i> Add New
-      </button>
+      <div>
+        <button class="btn btn-outline-danger me-2" (click)="downloadPDF()" *ngIf="kilnLoadings.length > 0">
+          <i class="fas fa-file-pdf me-1"></i> PDF
+        </button>
+        <button class="btn btn-brick" (click)="openModal()">
+          <i class="fas fa-plus me-1"></i> Add New
+        </button>
+      </div>
     </div>
 
     <!-- Table -->
@@ -344,6 +349,30 @@ export class KilnLoadingComponent implements OnInit {
         this.showDeleteConfirm = false;
       }
     });
+  }
+
+  downloadPDF(): void {
+    const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '-';
+    const getEmpNames = (item: any) => {
+      const ids = this.getEmployeeIds(item);
+      return ids.map(id => { const e = this.employees.find(emp => emp._id === id); return e ? e.name : ''; }).filter(n => n).join(', ') || '-';
+    };
+    let html = `<html><head><title>Kiln Loading Report</title><style>
+      body{font-family:Arial,sans-serif;padding:20px;} h1{color:#c0392b;font-size:1.5rem;}
+      table{width:100%;border-collapse:collapse;margin-top:15px;} th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.85rem;}
+      th{background:#c0392b;color:#fff;} tr:nth-child(even){background:#f9f9f9;}
+      .header{display:flex;justify-content:space-between;align-items:center;} .date{color:#666;font-size:0.85rem;}
+    </style></head><body>
+    <div class="header"><h1>Kiln Loading Report</h1><span class="date">Generated: ${new Date().toLocaleDateString('en-IN')}</span></div>
+    <table><tr><th>#</th><th>Kiln</th><th>Qty Loaded</th><th>Employees</th><th>Date</th><th>Wages</th><th>Status</th></tr>`;
+    this.kilnLoadings.forEach((item, i) => {
+      const wages = item.total_wages || this.calculateWages(item.quantity_loaded);
+      html += `<tr><td>${i+1}</td><td>Kiln ${item.kiln_number}</td><td>${(item.quantity_loaded||0).toLocaleString()}</td>
+        <td>${getEmpNames(item)}</td><td>${formatDate(item.loading_date)}</td><td>Rs.${wages.toFixed(2)}</td><td>${item.status}</td></tr>`;
+    });
+    html += `</table></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   }
 
   showAlert(message: string, type: string): void {

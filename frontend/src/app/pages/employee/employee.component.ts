@@ -18,9 +18,14 @@ import { ApiService } from '../../services/api.service';
 
     <div class="page-header">
       <h2><i class="fas fa-users me-2"></i>Employees</h2>
-      <button class="btn btn-brick" (click)="openModal()">
-        <i class="fas fa-plus me-1"></i> Add New
-      </button>
+      <div>
+        <button class="btn btn-outline-danger me-2" (click)="downloadPDF()" *ngIf="employees.length > 0">
+          <i class="fas fa-file-pdf me-1"></i> PDF
+        </button>
+        <button class="btn btn-brick" (click)="openModal()">
+          <i class="fas fa-plus me-1"></i> Add New
+        </button>
+      </div>
     </div>
 
     <!-- Table -->
@@ -339,6 +344,28 @@ export class EmployeeComponent implements OnInit {
         this.showDeleteConfirm = false;
       }
     });
+  }
+
+  downloadPDF(): void {
+    let html = `<html><head><title>Employees Report</title><style>
+      body{font-family:Arial,sans-serif;padding:20px;} h1{color:#c0392b;font-size:1.5rem;}
+      table{width:100%;border-collapse:collapse;margin-top:15px;} th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.85rem;}
+      th{background:#c0392b;color:#fff;} tr:nth-child(even){background:#f9f9f9;}
+      .header{display:flex;justify-content:space-between;align-items:center;} .date{color:#666;font-size:0.85rem;}
+      .green{color:#198754;} .red{color:#dc3545;}
+    </style></head><body>
+    <div class="header"><h1>Employees Report</h1><span class="date">Generated: ${new Date().toLocaleDateString('en-IN')}</span></div>
+    <table><tr><th>#</th><th>Name</th><th>Phone</th><th>Total Earned</th><th>Total Paid</th><th>Balance</th></tr>`;
+    this.employees.forEach((item, i) => {
+      const bal = item.balance || 0;
+      const balColor = bal > 0 ? 'green' : bal < 0 ? 'red' : '';
+      html += `<tr><td>${i+1}</td><td>${item.name}</td><td>${item.phone||'-'}</td>
+        <td>Rs.${(item.total_wages_earned||0).toFixed(2)}</td><td>Rs.${(item.total_paid||0).toFixed(2)}</td>
+        <td class="${balColor}"><strong>Rs.${bal.toFixed(2)}</strong></td></tr>`;
+    });
+    html += `</table></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   }
 
   showAlert(message: string, type: string): void {

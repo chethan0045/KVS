@@ -17,9 +17,14 @@ import { ApiService } from '../../services/api.service';
 
     <div class="page-header">
       <h2><i class="fas fa-industry me-2"></i>Brick Production</h2>
-      <button class="btn btn-brick" (click)="openModal()">
-        <i class="fas fa-plus me-1"></i> Add New
-      </button>
+      <div>
+        <button class="btn btn-outline-danger me-2" (click)="downloadPDF()" *ngIf="productions.length > 0">
+          <i class="fas fa-file-pdf me-1"></i> PDF
+        </button>
+        <button class="btn btn-brick" (click)="openModal()">
+          <i class="fas fa-plus me-1"></i> Add New
+        </button>
+      </div>
     </div>
 
     <!-- Table -->
@@ -298,6 +303,26 @@ export class ProductionComponent implements OnInit {
         this.showDeleteConfirm = false;
       }
     });
+  }
+
+  downloadPDF(): void {
+    const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '-';
+    let html = `<html><head><title>Brick Production Report</title><style>
+      body{font-family:Arial,sans-serif;padding:20px;} h1{color:#c0392b;font-size:1.5rem;}
+      table{width:100%;border-collapse:collapse;margin-top:15px;} th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:0.85rem;}
+      th{background:#c0392b;color:#fff;} tr:nth-child(even){background:#f9f9f9;}
+      .header{display:flex;justify-content:space-between;align-items:center;} .date{color:#666;font-size:0.85rem;}
+    </style></head><body>
+    <div class="header"><h1>Brick Production Report</h1><span class="date">Generated: ${new Date().toLocaleDateString('en-IN')}</span></div>
+    <table><tr><th>#</th><th>Batch Number</th><th>Quantity</th><th>Employee</th><th>Wages</th><th>Date</th><th>Status</th></tr>`;
+    this.productions.forEach((item, i) => {
+      html += `<tr><td>${i+1}</td><td>${item.batch_number}</td><td>${(item.quantity||0).toLocaleString()}</td>
+        <td>${this.getEmployeeName(item.employee_id)}</td><td>Rs.${(item.quantity*1.1).toFixed(2)}</td>
+        <td>${formatDate(item.production_date)}</td><td>${item.status === 'ready_for_kiln' ? 'Ready for Kiln' : 'Produced'}</td></tr>`;
+    });
+    html += `</table></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   }
 
   showAlert(message: string, type: string): void {
