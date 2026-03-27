@@ -81,6 +81,7 @@ router.get('/', async (req, res) => {
         grand_total: 0,
         total_wages_earned: emp.total_wages_earned || 0,
         total_paid: emp.total_paid || 0,
+        old_balance: emp.old_balance || 0,
         balance: emp.balance || 0,
         production_details: [],
         loading_details: [],

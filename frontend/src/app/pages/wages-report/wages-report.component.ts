@@ -321,7 +321,7 @@ export class WagesReportComponent implements OnInit {
 
   getPaymentHistoryWithBalance(row: any): any[] {
     if (!row.payment_history || row.payment_history.length === 0) return [];
-    let runningBalance = row.total_wages_earned || row.grand_total;
+    let runningBalance = (row.total_wages_earned || row.grand_total || 0) + (row.old_balance || 0);
     return row.payment_history.map((p: any) => {
       runningBalance -= p.amount;
       return { ...p, running_balance: runningBalance };
@@ -427,7 +427,7 @@ export class WagesReportComponent implements OnInit {
       <table>
         <tr><th>Date</th><th>Time</th><th>Amount Paid</th><th>Running Balance</th></tr>`;
 
-      let runningBalance = row.total_wages_earned || row.grand_total;
+      let runningBalance = (row.total_wages_earned || row.grand_total || 0) + (row.old_balance || 0);
       for (const p of paymentHistory) {
         const paidDate = new Date(p.paid_at);
         const dateStr = paidDate.toLocaleDateString('en-IN');
