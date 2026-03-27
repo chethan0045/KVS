@@ -79,6 +79,10 @@ import { ApiService } from '../../services/api.service';
                   (click)="updateStatus(kl._id, 'ready')">
                   <i class="fas fa-check me-1"></i>Ready
                 </button>
+                <button class="btn btn-sm btn-info text-white" *ngIf="kl.status === 'ready'"
+                  (click)="archiveKiln(kl)">
+                  <i class="fas fa-archive me-1"></i>Archive
+                </button>
               </div>
             </div>
 
@@ -462,6 +466,26 @@ export class KilnManufactureComponent implements OnInit {
       error: () => {
         this.showAlertMsg('Failed to delete', 'danger');
         this.showDeleteConfirm = false;
+      }
+    });
+  }
+
+  archiveKiln(kl: any): void {
+    const remaining = (kl.quantity_loaded || 0) - (kl.quantity_sold || 0);
+    let msg = `Archive Kiln ${kl.kiln_number}?\n\nThis will save all data (loading, manufactures, sales) to Old Records and clear this kiln.`;
+    if (remaining > 0) {
+      msg += `\n\n${remaining.toLocaleString()} bricks remaining will be counted as damaged.`;
+    }
+    if (!confirm(msg)) return;
+
+    this.apiService.createArchive({ kiln_loading_id: kl._id }).subscribe({
+      next: () => {
+        this.showAlertMsg('Kiln ' + kl.kiln_number + ' archived to Old Records', 'success');
+        this.loadKilnLoadings();
+        this.loadData();
+      },
+      error: (err) => {
+        this.showAlertMsg(err.error?.error || 'Failed to archive', 'danger');
       }
     });
   }

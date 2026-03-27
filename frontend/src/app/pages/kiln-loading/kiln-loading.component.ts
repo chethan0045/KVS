@@ -72,10 +72,6 @@ import { ApiService } from '../../services/api.service';
               </span>
             </td>
             <td style="white-space: nowrap;">
-              <button class="btn btn-info btn-sm me-1" (click)="archiveKiln(item)" title="Archive to Old Records"
-                *ngIf="item.status === 'ready'">
-                <i class="fas fa-archive"></i>
-              </button>
               <button class="btn btn-warning btn-sm me-1" (click)="openModal(item)" title="Edit">
                 <i class="fas fa-edit"></i>
               </button>
