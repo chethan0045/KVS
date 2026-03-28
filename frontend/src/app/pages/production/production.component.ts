@@ -84,7 +84,7 @@ import { ApiService } from '../../services/api.service';
             <tr *ngIf="expandedRow === i && item.sections?.length > 0" style="background-color: #f8f9fa;">
               <td [attr.colspan]="8">
                 <div class="p-2">
-                  <table class="table table-sm table-bordered mb-0" style="background: #fff;">
+                  <table class="table table-sm table-bordered mb-0" style="background: #fff; font-size: 0.8rem;">
                     <thead>
                       <tr style="background: #e8e0d8;">
                         <th>Section/Kana</th>
@@ -98,8 +98,8 @@ import { ApiService } from '../../services/api.service';
                           <td *ngIf="first" [attr.rowspan]="s.entries.length" style="font-weight:bold; vertical-align:middle;">
                             {{ s.section_no || '-' }}
                           </td>
-                          <td>{{ e.a || 0 }} × {{ e.b || 0 }}</td>
-                          <td>{{ e.value || (e.a || 0) * (e.b || 0) | number }}</td>
+                          <td>{{ getEntryCalc(e) }}</td>
+                          <td>{{ getEntryValue(e) | number }}</td>
                         </tr>
                       </ng-container>
                       <tr style="background: #e8f5e9; font-weight: bold;">
@@ -108,6 +108,11 @@ import { ApiService } from '../../services/api.service';
                       </tr>
                     </tbody>
                   </table>
+                  <div class="text-end mt-2">
+                    <button class="btn btn-outline-danger btn-sm" (click)="downloadDetailPDF(item)">
+                      <i class="fas fa-file-pdf me-1"></i> Download PDF
+                    </button>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -313,6 +318,19 @@ export class ProductionComponent implements OnInit {
     this.calcTotal();
   }
 
+  getEntryCalc(e: any): string {
+    if (e.a && e.b) return `${e.a} × ${e.b}`;
+    if (e.expr) return e.expr;
+    if (e.value) return String(e.value);
+    return '-';
+  }
+
+  getEntryValue(e: any): number {
+    if (e.value) return e.value;
+    if (e.a && e.b) return e.a * e.b;
+    return 0;
+  }
+
   toggleDetails(index: number): void {
     this.expandedRow = this.expandedRow === index ? null : index;
   }
@@ -400,6 +418,30 @@ export class ProductionComponent implements OnInit {
       next: () => { this.showAlert('Deleted', 'success'); this.showDeleteConfirm = false; this.deletingItem = null; this.loadData(); },
       error: () => { this.showAlert('Failed to delete', 'danger'); this.showDeleteConfirm = false; }
     });
+  }
+
+  downloadDetailPDF(item: any): void {
+    const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN') : '-';
+    let html = `<html><head><title>Production Detail</title><style>
+      body{font-family:Arial,sans-serif;padding:15px;} h1{color:#c0392b;font-size:1.3rem;}
+      table{width:100%;border-collapse:collapse;margin-top:10px;} th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;font-size:0.85rem;}
+      th{background:#c0392b;color:#fff;} .total{background:#e8f5e9;font-weight:bold;}
+      .info{margin:8px 0;font-size:0.9rem;}
+    </style></head><body>
+    <h1>Production Detail</h1>
+    <div class="info"><strong>Date:</strong> ${formatDate(item.production_date)} | <strong>Employee:</strong> ${this.getEmployeeName(item.employee_id)} | <strong>Wages:</strong> Rs.${(item.quantity * 1.1).toFixed(2)}</div>
+    <table><tr><th>Section/Kana</th><th>Calculation</th><th>Bricks</th></tr>`;
+    for (const s of (item.sections || [])) {
+      for (let j = 0; j < s.entries.length; j++) {
+        const e = s.entries[j];
+        html += `<tr>${j === 0 ? `<td rowspan="${s.entries.length}" style="font-weight:bold;">${s.section_no || '-'}</td>` : ''}
+          <td>${this.getEntryCalc(e)}</td><td>${this.getEntryValue(e).toLocaleString()}</td></tr>`;
+      }
+    }
+    html += `<tr class="total"><td colspan="2" style="text-align:right;">Total</td><td>${(item.quantity || 0).toLocaleString()}</td></tr>`;
+    html += `</table></body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); w.print(); }
   }
 
   downloadPDF(): void {
