@@ -51,7 +51,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST / - Create or add to kiln loading
+// POST / - Create kiln loading (separate entry each time)
 router.post('/', async (req, res) => {
   try {
     const { kiln_number, quantity_loaded, employees, loading_date, status, remarks } = req.body;
@@ -60,54 +60,25 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'kiln_number, quantity_loaded, and loading_date are required' });
     }
 
-    const addedWages = quantity_loaded * 0.60;
-
-    // Check if there's an existing active loading for this kiln
-    const existing = await KilnLoading.findOne({ kiln_number });
-
-    if (existing && (existing.status === 'firing' || existing.status === 'ready')) {
-      return res.status(400).json({ error: `Kiln ${kiln_number} is currently ${existing.status}. Cannot load bricks until it is archived or emptied.` });
+    // Block if any loading for this kiln is firing or ready
+    const blocked = await KilnLoading.findOne({ kiln_number, status: { $in: ['firing', 'ready'] } });
+    if (blocked) {
+      return res.status(400).json({ error: `Kiln ${kiln_number} is currently ${blocked.status}. Cannot load bricks until it is archived or emptied.` });
     }
 
-    if (existing && existing.status === 'loading') {
-      // Add to existing kiln loading
-      existing.quantity_loaded += quantity_loaded;
-      existing.total_wages += addedWages;
-      existing.loading_date = loading_date;
-      if (employees && employees.length > 0) {
-        // Merge employees (add new ones that aren't already there)
-        const existingEmpIds = existing.employees.map(e => e.toString());
-        for (const empId of employees) {
-          if (!existingEmpIds.includes(empId)) {
-            existing.employees.push(empId);
-          }
-        }
-      }
-      if (remarks) existing.remarks = remarks;
+    const total_wages = quantity_loaded * 0.60;
 
-      await existing.save();
-
-      // Add wages to employees for the newly added quantity
-      await addWagesToEmployees(employees || [], addedWages);
-
-      const populated = await existing.populate('employees');
-      return res.status(201).json(populated);
-    }
-
-    // Create new kiln loading
     const loading = new KilnLoading({
       kiln_number,
       quantity_loaded,
       employees: employees || [],
       loading_date,
       status: status || 'loading',
-      total_wages: addedWages,
+      total_wages,
       remarks
     });
 
     const saved = await loading.save();
-
-    // Add wages to employees
     await addWagesToEmployees(saved.employees, saved.total_wages);
 
     const populated = await saved.populate('employees');
@@ -154,7 +125,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// PATCH /:id/status - Update kiln status only
+// PATCH /:id/status - Update kiln status for all loadings of that kiln
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
@@ -165,9 +136,10 @@ router.patch('/:id/status', async (req, res) => {
     if (!loading) {
       return res.status(404).json({ error: 'Kiln loading not found' });
     }
+    // Update all loadings for this kiln number
+    await KilnLoading.updateMany({ kiln_number: loading.kiln_number }, { status });
     loading.status = status;
-    const updated = await loading.save();
-    const populated = await updated.populate('employees');
+    const populated = await loading.populate('employees');
     res.json(populated);
   } catch (error) {
     res.status(500).json({ error: error.message });

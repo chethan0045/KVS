@@ -29,32 +29,55 @@ router.get('/:id', async (req, res) => {
 // POST / - Archive a kiln loading and all related data
 router.post('/', async (req, res) => {
   try {
-    const { kiln_loading_id, remarks } = req.body;
+    const { kiln_loading_id, kiln_number, remarks } = req.body;
 
-    if (!kiln_loading_id) {
-      return res.status(400).json({ error: 'kiln_loading_id is required' });
+    if (!kiln_loading_id && !kiln_number) {
+      return res.status(400).json({ error: 'kiln_loading_id or kiln_number is required' });
     }
 
-    // Get kiln loading with populated employees
-    const kilnLoading = await KilnLoading.findById(kiln_loading_id).populate('employees', 'name phone');
-    if (!kilnLoading) {
-      return res.status(404).json({ error: 'Kiln loading not found' });
+    // Find all kiln loadings for this kiln
+    let kilnLoadings;
+    if (kiln_number) {
+      kilnLoadings = await KilnLoading.find({ kiln_number }).populate('employees', 'name phone');
+    } else {
+      const single = await KilnLoading.findById(kiln_loading_id).populate('employees', 'name phone');
+      if (!single) return res.status(404).json({ error: 'Kiln loading not found' });
+      kilnLoadings = await KilnLoading.find({ kiln_number: single.kiln_number }).populate('employees', 'name phone');
     }
 
-    // Get all manufactures for this kiln loading
-    const manufactures = await KilnManufacture.find({ kiln_loading_id })
+    if (kilnLoadings.length === 0) {
+      return res.status(404).json({ error: 'No kiln loadings found' });
+    }
+
+    const kilnNum = kilnLoadings[0].kiln_number;
+    const loadingIds = kilnLoadings.map(kl => kl._id);
+
+    // Aggregate kiln loading data
+    const totalLoaded = kilnLoadings.reduce((s, kl) => s + (kl.quantity_loaded || 0), 0);
+    const totalSold = kilnLoadings.reduce((s, kl) => s + (kl.quantity_sold || 0), 0);
+    const totalWages = kilnLoadings.reduce((s, kl) => s + (kl.total_wages || 0), 0);
+
+    // Get all manufactures and sales for all loadings of this kiln
+    const manufactures = await KilnManufacture.find({ kiln_loading_id: { $in: loadingIds } })
       .populate('employees', 'name phone');
 
-    // Get all sales for this kiln loading
-    const sales = await BrickSale.find({ kiln_loading_id })
+    const sales = await BrickSale.find({ kiln_loading_id: { $in: loadingIds } })
       .populate('customer_id', 'name phone')
       .populate('driver_id', 'name')
       .populate('helper_id', 'name');
 
-    // Create archive
+    // Create archive with aggregated loading
     const archive = new Archive({
-      kiln_number: kilnLoading.kiln_number,
-      kiln_loading: kilnLoading.toObject(),
+      kiln_number: kilnNum,
+      kiln_loading: {
+        kiln_number: kilnNum,
+        quantity_loaded: totalLoaded,
+        quantity_sold: totalSold,
+        total_wages: totalWages,
+        status: kilnLoadings[0].status,
+        employees: kilnLoadings.flatMap(kl => kl.employees || []),
+        loading_entries: kilnLoadings.map(kl => kl.toObject())
+      },
       manufactures: manufactures.map(m => m.toObject()),
       sales: sales.map(s => s.toObject()),
       remarks
@@ -63,9 +86,9 @@ router.post('/', async (req, res) => {
     await archive.save();
 
     // Delete original records
-    await BrickSale.deleteMany({ kiln_loading_id });
-    await KilnManufacture.deleteMany({ kiln_loading_id });
-    await KilnLoading.findByIdAndDelete(kiln_loading_id);
+    await BrickSale.deleteMany({ kiln_loading_id: { $in: loadingIds } });
+    await KilnManufacture.deleteMany({ kiln_loading_id: { $in: loadingIds } });
+    await KilnLoading.deleteMany({ _id: { $in: loadingIds } });
 
     res.status(201).json(archive);
   } catch (error) {

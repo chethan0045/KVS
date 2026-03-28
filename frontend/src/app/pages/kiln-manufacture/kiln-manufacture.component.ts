@@ -315,10 +315,16 @@ export class KilnManufactureComponent implements OnInit {
     });
   }
 
-  // Get the latest kiln loading for a kiln number
+  // Get aggregated kiln loading for a kiln number
   getKilnLoading(kilnNum: number): any {
     const matches = this.kilnLoadings.filter(kl => kl.kiln_number === String(kilnNum));
-    return matches.length > 0 ? matches[0] : null; // sorted by createdAt desc from API
+    if (matches.length === 0) return null;
+    // Use first (latest) for status/_id, but sum quantities and wages
+    const first = matches[0];
+    const totalLoaded = matches.reduce((s, kl) => s + (kl.quantity_loaded || 0), 0);
+    const totalSold = matches.reduce((s, kl) => s + (kl.quantity_sold || 0), 0);
+    const totalWages = matches.reduce((s, kl) => s + (kl.total_wages || 0), 0);
+    return { ...first, quantity_loaded: totalLoaded, quantity_sold: totalSold, total_wages: totalWages, _loadingIds: matches.map(m => m._id) };
   }
 
   getKilnStatus(kilnNum: number): string {
@@ -478,7 +484,7 @@ export class KilnManufactureComponent implements OnInit {
     }
     if (!confirm(msg)) return;
 
-    this.apiService.createArchive({ kiln_loading_id: kl._id }).subscribe({
+    this.apiService.createArchive({ kiln_number: kl.kiln_number }).subscribe({
       next: () => {
         this.showAlertMsg('Kiln ' + kl.kiln_number + ' archived to Old Records', 'success');
         this.loadKilnLoadings();
