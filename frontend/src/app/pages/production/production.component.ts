@@ -43,38 +43,75 @@ import { ApiService } from '../../services/api.service';
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of productions; let i = index">
-            <td>{{ i + 1 }}</td>
-            <td><strong>{{ item.quantity | number }}</strong></td>
-            <td>
-              <small *ngIf="item.sections?.length > 0">
-                <span *ngFor="let s of item.sections; let last = last">
-                  {{ s.section_no }}{{ !last ? ', ' : '' }}
+          <ng-container *ngFor="let item of productions; let i = index">
+            <tr>
+              <td>{{ i + 1 }}</td>
+              <td><strong>{{ item.quantity | number }}</strong></td>
+              <td>
+                <small *ngIf="item.sections?.length > 0">
+                  <span *ngFor="let s of item.sections; let last = last">
+                    {{ s.section_no }}{{ !last ? ', ' : '' }}
+                  </span>
+                </small>
+                <span *ngIf="!item.sections?.length">-</span>
+              </td>
+              <td>{{ getEmployeeName(item.employee_id) }}</td>
+              <td><strong>&#8377;{{ (item.quantity * 1.1) | number:'1.2-2' }}</strong></td>
+              <td>{{ item.production_date | date:'mediumDate' }}</td>
+              <td>
+                <span class="badge badge-status"
+                  [ngClass]="{
+                    'bg-success': item.status === 'ready_for_kiln',
+                    'bg-info': item.status === 'produced'
+                  }">
+                  {{ item.status === 'ready_for_kiln' ? 'Ready for Kiln' : 'Produced' }}
                 </span>
-              </small>
-              <span *ngIf="!item.sections?.length">-</span>
-            </td>
-            <td>{{ getEmployeeName(item.employee_id) }}</td>
-            <td><strong>&#8377;{{ (item.quantity * 1.1) | number:'1.2-2' }}</strong></td>
-            <td>{{ item.production_date | date:'mediumDate' }}</td>
-            <td>
-              <span class="badge badge-status"
-                [ngClass]="{
-                  'bg-success': item.status === 'ready_for_kiln',
-                  'bg-info': item.status === 'produced'
-                }">
-                {{ item.status === 'ready_for_kiln' ? 'Ready for Kiln' : 'Produced' }}
-              </span>
-            </td>
-            <td style="white-space: nowrap;">
-              <button class="btn btn-warning btn-sm me-1" (click)="openModal(item)">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="btn btn-danger btn-sm" (click)="confirmDelete(item)">
-                <i class="fas fa-trash"></i>
-              </button>
-            </td>
-          </tr>
+              </td>
+              <td style="white-space: nowrap;">
+                <button class="btn btn-sm btn-outline-secondary me-1" (click)="toggleDetails(i)" title="Details"
+                  *ngIf="item.sections?.length > 0">
+                  <i class="fas" [ngClass]="expandedRow === i ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <button class="btn btn-warning btn-sm me-1" (click)="openModal(item)">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" (click)="confirmDelete(item)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <!-- Expanded Section Details -->
+            <tr *ngIf="expandedRow === i && item.sections?.length > 0" style="background-color: #f8f9fa;">
+              <td [attr.colspan]="8">
+                <div class="p-2">
+                  <table class="table table-sm table-bordered mb-0" style="background: #fff;">
+                    <thead>
+                      <tr style="background: #e8e0d8;">
+                        <th>Section/Kana</th>
+                        <th>Calculation</th>
+                        <th>Bricks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <ng-container *ngFor="let s of item.sections">
+                        <tr *ngFor="let e of s.entries; let first = first">
+                          <td *ngIf="first" [attr.rowspan]="s.entries.length" style="font-weight:bold; vertical-align:middle;">
+                            {{ s.section_no || '-' }}
+                          </td>
+                          <td>{{ e.a || 0 }} × {{ e.b || 0 }}</td>
+                          <td>{{ e.value || (e.a || 0) * (e.b || 0) | number }}</td>
+                        </tr>
+                      </ng-container>
+                      <tr style="background: #e8f5e9; font-weight: bold;">
+                        <td colspan="2" style="text-align: right;">Total</td>
+                        <td>{{ item.quantity | number }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
         </tbody>
       </table>
       <div *ngIf="productions.length === 0" class="empty-state">
@@ -217,6 +254,7 @@ export class ProductionComponent implements OnInit {
   deletingItem: any = null;
   alertMessage = '';
   alertType = 'success';
+  expandedRow: number | null = null;
   sections: { section_no: string; entries: { a: number | null; b: number | null }[] }[] = [];
   totalQty = 0;
 
@@ -273,6 +311,10 @@ export class ProductionComponent implements OnInit {
   removeEntry(sIdx: number, eIdx: number): void {
     this.sections[sIdx].entries.splice(eIdx, 1);
     this.calcTotal();
+  }
+
+  toggleDetails(index: number): void {
+    this.expandedRow = this.expandedRow === index ? null : index;
   }
 
   getEmployeeName(employeeId: any): string {
