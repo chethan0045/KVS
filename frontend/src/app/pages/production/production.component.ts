@@ -109,10 +109,13 @@ import { ApiService } from '../../services/api.service';
                         <i class="fas fa-times"></i>
                       </button>
                     </div>
-                    <div *ngFor="let entry of section.entries; let eIdx = index" class="d-flex align-items-center mb-1 gap-2">
-                      <input type="text" class="form-control form-control-sm" [(ngModel)]="entry.expr"
-                        [ngModelOptions]="{standalone: true}" placeholder="e.g. 80*30" (input)="calcTotal()" style="flex:1;">
-                      <span class="text-muted" style="min-width:55px; font-size:0.8rem;">= {{ evalExpr(entry.expr) | number }}</span>
+                    <div *ngFor="let entry of section.entries; let eIdx = index" class="d-flex align-items-center mb-1 gap-1">
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="entry.a"
+                        [ngModelOptions]="{standalone: true}" placeholder="0" (input)="calcTotal()" style="flex:1; text-align:center;">
+                      <span style="font-weight:bold; color:#888;">×</span>
+                      <input type="number" class="form-control form-control-sm" [(ngModel)]="entry.b"
+                        [ngModelOptions]="{standalone: true}" placeholder="0" (input)="calcTotal()" style="flex:1; text-align:center;">
+                      <span class="text-muted" style="min-width:55px; font-size:0.8rem;">= {{ (entry.a || 0) * (entry.b || 0) | number }}</span>
                       <button class="btn btn-outline-danger btn-sm" style="padding:2px 6px;" (click)="removeEntry(sIdx, eIdx)"
                         *ngIf="section.entries.length > 1" title="Remove">
                         <i class="fas fa-minus" style="font-size:0.7rem;"></i>
@@ -214,7 +217,7 @@ export class ProductionComponent implements OnInit {
   deletingItem: any = null;
   alertMessage = '';
   alertType = 'success';
-  sections: { section_no: string; entries: { expr: string }[] }[] = [];
+  sections: { section_no: string; entries: { a: number | null; b: number | null }[] }[] = [];
   totalQty = 0;
 
   form = new FormGroup({
@@ -245,29 +248,17 @@ export class ProductionComponent implements OnInit {
     });
   }
 
-  evalExpr(expr: string): number {
-    if (!expr || !expr.trim()) return 0;
-    try {
-      const sanitized = expr.replace(/[^0-9*+\-.]/g, '');
-      if (!sanitized) return 0;
-      const result = Function('"use strict"; return (' + sanitized + ')')();
-      return isNaN(result) ? 0 : Math.round(result);
-    } catch {
-      return 0;
-    }
-  }
-
   getSectionTotal(sIdx: number): number {
-    return this.sections[sIdx].entries.reduce((sum, e) => sum + this.evalExpr(e.expr), 0);
+    return this.sections[sIdx].entries.reduce((sum, e) => sum + (e.a || 0) * (e.b || 0), 0);
   }
 
   calcTotal(): void {
     this.totalQty = this.sections.reduce((sum, s) =>
-      sum + s.entries.reduce((eSum, e) => eSum + this.evalExpr(e.expr), 0), 0);
+      sum + s.entries.reduce((eSum, e) => eSum + (e.a || 0) * (e.b || 0), 0), 0);
   }
 
   addSection(): void {
-    this.sections.push({ section_no: '', entries: [{ expr: '' }] });
+    this.sections.push({ section_no: '', entries: [{ a: null, b: null }] });
   }
 
   removeSection(idx: number): void {
@@ -276,7 +267,7 @@ export class ProductionComponent implements OnInit {
   }
 
   addEntry(sIdx: number): void {
-    this.sections[sIdx].entries.push({ expr: '' });
+    this.sections[sIdx].entries.push({ a: null, b: null });
   }
 
   removeEntry(sIdx: number, eIdx: number): void {
@@ -305,17 +296,17 @@ export class ProductionComponent implements OnInit {
         this.sections = item.sections.map((s: any) => ({
           section_no: s.section_no || '',
           entries: s.entries && s.entries.length > 0
-            ? s.entries.map((e: any) => ({ expr: e.expr || String(e.value || '') }))
-            : [{ expr: '' }]
+            ? s.entries.map((e: any) => ({ a: e.a || e.value || null, b: e.b || 1 }))
+            : [{ a: null, b: null }]
         }));
       } else {
-        this.sections = [{ section_no: '', entries: [{ expr: String(item.quantity) }] }];
+        this.sections = [{ section_no: '', entries: [{ a: item.quantity, b: 1 }] }];
       }
       this.calcTotal();
     } else {
       this.form.reset();
       this.form.patchValue({ status: 'produced' });
-      this.sections = [{ section_no: '', entries: [{ expr: '' }] }];
+      this.sections = [{ section_no: '', entries: [{ a: null, b: null }] }];
       this.totalQty = 0;
     }
     this.showModal = true;
@@ -325,7 +316,7 @@ export class ProductionComponent implements OnInit {
     this.showModal = false;
     this.editingItem = null;
     this.form.reset();
-    this.sections = [{ section_no: '', entries: [{ expr: '' }] }];
+    this.sections = [{ section_no: '', entries: [{ a: null, b: null }] }];
     this.totalQty = 0;
   }
 
@@ -333,7 +324,7 @@ export class ProductionComponent implements OnInit {
     if (this.form.invalid || this.totalQty <= 0) return;
     const sectionsData = this.sections.map(s => ({
       section_no: s.section_no,
-      entries: s.entries.map(e => ({ expr: e.expr, value: this.evalExpr(e.expr) }))
+      entries: s.entries.map(e => ({ a: e.a || 0, b: e.b || 0, value: (e.a || 0) * (e.b || 0) }))
     }));
 
     const data = {

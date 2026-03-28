@@ -6,7 +6,7 @@ const brickProductionSchema = new Schema({
   quantity: { type: Number, required: true },
   sections: [{
     section_no: { type: String },
-    entries: [{ expr: String, value: Number }]
+    entries: [{ a: Number, b: Number, value: Number }]
   }],
   production_date: { type: Date, required: true },
   employee_id: { type: Schema.Types.ObjectId, ref: 'Employee' },

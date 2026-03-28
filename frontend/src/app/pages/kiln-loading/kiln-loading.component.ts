@@ -117,10 +117,13 @@ import { ApiService } from '../../services/api.service';
                 <!-- Quantity Entries -->
                 <div class="mb-3">
                   <label class="form-label">Quantity Loaded *</label>
-                  <div *ngFor="let entry of qtyEntries; let idx = index" class="d-flex align-items-center mb-2 gap-2">
-                    <input type="text" class="form-control" [(ngModel)]="entry.expr" [ngModelOptions]="{standalone: true}"
-                      placeholder="e.g. 105*40" (input)="calcTotal()" style="flex:1;">
-                    <span class="text-muted" style="min-width:60px; font-size:0.85rem;">= {{ evalExpr(entry.expr) | number }}</span>
+                  <div *ngFor="let entry of qtyEntries; let idx = index" class="d-flex align-items-center mb-2 gap-1">
+                    <input type="number" class="form-control form-control-sm" [(ngModel)]="entry.a" [ngModelOptions]="{standalone: true}"
+                      placeholder="0" (input)="calcTotal()" style="flex:1; text-align:center;">
+                    <span style="font-weight:bold; color:#888;">×</span>
+                    <input type="number" class="form-control form-control-sm" [(ngModel)]="entry.b" [ngModelOptions]="{standalone: true}"
+                      placeholder="0" (input)="calcTotal()" style="flex:1; text-align:center;">
+                    <span class="text-muted" style="min-width:60px; font-size:0.85rem;">= {{ (entry.a || 0) * (entry.b || 0) | number }}</span>
                     <button class="btn btn-outline-danger btn-sm" (click)="removeQtyEntry(idx)" *ngIf="qtyEntries.length > 1" title="Remove">
                       <i class="fas fa-times"></i>
                     </button>
@@ -219,7 +222,7 @@ export class KilnLoadingComponent implements OnInit {
   deletingItem: any = null;
   alertMessage = '';
   alertType = 'success';
-  qtyEntries: { expr: string }[] = [{ expr: '' }];
+  qtyEntries: { a: number | null; b: number | null }[] = [{ a: null, b: null }];
   totalQty = 0;
 
   form = new FormGroup({
@@ -249,24 +252,12 @@ export class KilnLoadingComponent implements OnInit {
     });
   }
 
-  evalExpr(expr: string): number {
-    if (!expr || !expr.trim()) return 0;
-    try {
-      const sanitized = expr.replace(/[^0-9*+\-.]/g, '');
-      if (!sanitized) return 0;
-      const result = Function('"use strict"; return (' + sanitized + ')')();
-      return isNaN(result) ? 0 : Math.round(result);
-    } catch {
-      return 0;
-    }
-  }
-
   calcTotal(): void {
-    this.totalQty = this.qtyEntries.reduce((sum, e) => sum + this.evalExpr(e.expr), 0);
+    this.totalQty = this.qtyEntries.reduce((sum, e) => sum + (e.a || 0) * (e.b || 0), 0);
   }
 
   addQtyEntry(): void {
-    this.qtyEntries.push({ expr: '' });
+    this.qtyEntries.push({ a: null, b: null });
   }
 
   removeQtyEntry(idx: number): void {
@@ -315,12 +306,12 @@ export class KilnLoadingComponent implements OnInit {
         remarks: item.remarks || ''
       });
       this.selectedEmployeeIds = [...this.getEmployeeIds(item)];
-      this.qtyEntries = [{ expr: String(item.quantity_loaded) }];
+      this.qtyEntries = [{ a: item.quantity_loaded, b: 1 }];
       this.calcTotal();
     } else {
       this.form.reset();
       this.selectedEmployeeIds = [];
-      this.qtyEntries = [{ expr: '' }];
+      this.qtyEntries = [{ a: null, b: null }];
       this.totalQty = 0;
     }
     this.showModal = true;
@@ -331,7 +322,7 @@ export class KilnLoadingComponent implements OnInit {
     this.editingItem = null;
     this.form.reset();
     this.selectedEmployeeIds = [];
-    this.qtyEntries = [{ expr: '' }];
+    this.qtyEntries = [{ a: null, b: null }];
     this.totalQty = 0;
   }
 
