@@ -1,13 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-kiln-loading',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
   template: `
     <!-- Alert -->
     <div *ngIf="alertMessage" class="alert alert-floating" [ngClass]="'alert-' + alertType" role="alert">
@@ -99,7 +99,7 @@ import { ApiService } from '../../services/api.service';
               <h5 class="modal-title">{{ editingItem ? 'Edit' : 'Add' }} Kiln Loading</h5>
               <button type="button" class="btn-close" (click)="closeModal()"></button>
             </div>
-            <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+            <div class="modal-body">
               <form [formGroup]="form">
                 <div class="mb-3">
                   <label class="form-label">Kiln Number *</label>
@@ -113,12 +113,26 @@ import { ApiService } from '../../services/api.service';
                   </select>
                   <div class="invalid-feedback">Kiln number is required</div>
                 </div>
+
+                <!-- Quantity Entries -->
                 <div class="mb-3">
                   <label class="form-label">Quantity Loaded *</label>
-                  <input type="number" class="form-control" formControlName="quantity_loaded"
-                    [ngClass]="{'is-invalid': form.get('quantity_loaded')?.touched && form.get('quantity_loaded')?.invalid}">
-                  <div class="invalid-feedback">Quantity is required and must be positive</div>
+                  <div *ngFor="let entry of qtyEntries; let idx = index" class="d-flex align-items-center mb-2 gap-2">
+                    <input type="text" class="form-control" [(ngModel)]="entry.expr" [ngModelOptions]="{standalone: true}"
+                      placeholder="e.g. 105*40" (input)="calcTotal()" style="flex:1;">
+                    <span class="text-muted" style="min-width:60px; font-size:0.85rem;">= {{ evalExpr(entry.expr) | number }}</span>
+                    <button class="btn btn-outline-danger btn-sm" (click)="removeQtyEntry(idx)" *ngIf="qtyEntries.length > 1" title="Remove">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="addQtyEntry()">
+                    <i class="fas fa-plus me-1"></i> Add More
+                  </button>
+                  <div class="mt-2 p-2" style="background:#f0f0f0; border-radius:6px; font-weight:bold;">
+                    Total: {{ totalQty | number }} bricks
+                  </div>
                 </div>
+
                 <div class="mb-3">
                   <label class="form-label">Employees</label>
                   <div style="max-height: 150px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; padding: 8px;">
@@ -144,11 +158,11 @@ import { ApiService } from '../../services/api.service';
                   <label class="form-label">Total Wages</label>
                   <input type="text" class="form-control" readonly
                     style="background-color: #f8f9fa; font-weight: bold;"
-                    [value]="'\\u20B9' + calculateWages(form.get('quantity_loaded')?.value || 0).toFixed(2)">
+                    [value]="'\\u20B9' + calculateWages(totalQty).toFixed(2)">
                   <small class="text-muted">
-                    Quantity x &#8377;0.55
+                    {{ totalQty | number }} x &#8377;0.60
                     <span *ngIf="selectedEmployeeIds.length > 0">
-                      | Per employee: &#8377;{{ getPerEmployeeWage(calculateWages(form.get('quantity_loaded')?.value || 0), selectedEmployeeIds.length).toFixed(2) }}
+                      | Per employee: &#8377;{{ getPerEmployeeWage(calculateWages(totalQty), selectedEmployeeIds.length).toFixed(2) }}
                     </span>
                   </small>
                 </div>
@@ -160,7 +174,7 @@ import { ApiService } from '../../services/api.service';
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
-              <button type="button" class="btn btn-brick" (click)="save()" [disabled]="form.invalid">
+              <button type="button" class="btn btn-brick" (click)="save()" [disabled]="form.invalid || totalQty <= 0">
                 <i class="fas fa-save me-1"></i> {{ editingItem ? 'Update' : 'Save' }}
               </button>
             </div>
@@ -205,10 +219,11 @@ export class KilnLoadingComponent implements OnInit {
   deletingItem: any = null;
   alertMessage = '';
   alertType = 'success';
+  qtyEntries: { expr: string }[] = [{ expr: '' }];
+  totalQty = 0;
 
   form = new FormGroup({
     kiln_number: new FormControl('', Validators.required),
-    quantity_loaded: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
     loading_date: new FormControl('', Validators.required),
     remarks: new FormControl('')
   });
@@ -223,10 +238,7 @@ export class KilnLoadingComponent implements OnInit {
   loadData(): void {
     this.apiService.getKilnLoadings().subscribe({
       next: (data) => this.kilnLoadings = data,
-      error: (err) => {
-        console.error('Error:', err);
-        this.showAlert('Failed to load kiln loadings', 'danger');
-      }
+      error: () => this.showAlert('Failed to load kiln loadings', 'danger')
     });
   }
 
@@ -235,6 +247,31 @@ export class KilnLoadingComponent implements OnInit {
       next: (data) => this.employees = data,
       error: (err) => console.error('Error loading employees:', err)
     });
+  }
+
+  evalExpr(expr: string): number {
+    if (!expr || !expr.trim()) return 0;
+    try {
+      const sanitized = expr.replace(/[^0-9*+\-.]/g, '');
+      if (!sanitized) return 0;
+      const result = Function('"use strict"; return (' + sanitized + ')')();
+      return isNaN(result) ? 0 : Math.round(result);
+    } catch {
+      return 0;
+    }
+  }
+
+  calcTotal(): void {
+    this.totalQty = this.qtyEntries.reduce((sum, e) => sum + this.evalExpr(e.expr), 0);
+  }
+
+  addQtyEntry(): void {
+    this.qtyEntries.push({ expr: '' });
+  }
+
+  removeQtyEntry(idx: number): void {
+    this.qtyEntries.splice(idx, 1);
+    this.calcTotal();
   }
 
   getEmployeeIds(item: any): string[] {
@@ -257,7 +294,7 @@ export class KilnLoadingComponent implements OnInit {
   }
 
   calculateWages(quantity: number): number {
-    return (quantity || 0) * 0.55;
+    return (quantity || 0) * 0.60;
   }
 
   toggleEmployee(id: string): void {
@@ -274,14 +311,17 @@ export class KilnLoadingComponent implements OnInit {
     if (item) {
       this.form.patchValue({
         kiln_number: item.kiln_number,
-        quantity_loaded: item.quantity_loaded,
         loading_date: item.loading_date ? item.loading_date.substring(0, 10) : '',
         remarks: item.remarks || ''
       });
       this.selectedEmployeeIds = [...this.getEmployeeIds(item)];
+      this.qtyEntries = [{ expr: String(item.quantity_loaded) }];
+      this.calcTotal();
     } else {
       this.form.reset();
       this.selectedEmployeeIds = [];
+      this.qtyEntries = [{ expr: '' }];
+      this.totalQty = 0;
     }
     this.showModal = true;
   }
@@ -291,40 +331,29 @@ export class KilnLoadingComponent implements OnInit {
     this.editingItem = null;
     this.form.reset();
     this.selectedEmployeeIds = [];
+    this.qtyEntries = [{ expr: '' }];
+    this.totalQty = 0;
   }
 
   save(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.totalQty <= 0) return;
     const data = {
       ...this.form.value,
+      quantity_loaded: this.totalQty,
       status: this.editingItem ? this.editingItem.status : 'loading',
       employees: this.selectedEmployeeIds,
-      total_wages: this.calculateWages(this.form.value.quantity_loaded || 0)
+      total_wages: this.calculateWages(this.totalQty)
     };
 
     if (this.editingItem) {
       this.apiService.updateKilnLoading(this.editingItem._id, data).subscribe({
-        next: () => {
-          this.showAlert('Kiln loading updated successfully', 'success');
-          this.closeModal();
-          this.loadData();
-        },
-        error: (err) => {
-          console.error('Error:', err);
-          this.showAlert('Failed to update kiln loading', 'danger');
-        }
+        next: () => { this.showAlert('Kiln loading updated', 'success'); this.closeModal(); this.loadData(); },
+        error: (err) => this.showAlert(err.error?.error || 'Failed to update', 'danger')
       });
     } else {
       this.apiService.createKilnLoading(data).subscribe({
-        next: () => {
-          this.showAlert('Kiln loading created successfully', 'success');
-          this.closeModal();
-          this.loadData();
-        },
-        error: (err) => {
-          console.error('Error:', err);
-          this.showAlert('Failed to create kiln loading', 'danger');
-        }
+        next: () => { this.showAlert('Kiln loading created', 'success'); this.closeModal(); this.loadData(); },
+        error: (err) => this.showAlert(err.error?.error || 'Failed to create', 'danger')
       });
     }
   }
@@ -337,32 +366,8 @@ export class KilnLoadingComponent implements OnInit {
   deleteItem(): void {
     if (!this.deletingItem) return;
     this.apiService.deleteKilnLoading(this.deletingItem._id).subscribe({
-      next: () => {
-        this.showAlert('Kiln loading deleted successfully', 'success');
-        this.showDeleteConfirm = false;
-        this.deletingItem = null;
-        this.loadData();
-      },
-      error: (err) => {
-        console.error('Error:', err);
-        this.showAlert('Failed to delete kiln loading', 'danger');
-        this.showDeleteConfirm = false;
-      }
-    });
-  }
-
-  archiveKiln(item: any): void {
-    if (!confirm(`Archive Kiln ${item.kiln_number}? This will move all data (loading, manufactures, sales) to Old Records and remove it from here.`)) {
-      return;
-    }
-    this.apiService.createArchive({ kiln_loading_id: item._id }).subscribe({
-      next: () => {
-        this.showAlert('Kiln ' + item.kiln_number + ' archived to Old Records', 'success');
-        this.loadData();
-      },
-      error: (err) => {
-        this.showAlert(err.error?.error || 'Failed to archive', 'danger');
-      }
+      next: () => { this.showAlert('Deleted', 'success'); this.showDeleteConfirm = false; this.deletingItem = null; this.loadData(); },
+      error: () => { this.showAlert('Failed to delete', 'danger'); this.showDeleteConfirm = false; }
     });
   }
 

@@ -52,15 +52,16 @@ router.get('/:id', async (req, res) => {
 // POST / - Create production
 router.post('/', async (req, res) => {
   try {
-    const { batch_number, quantity, production_date, employee_id, status, remarks } = req.body;
+    const { batch_number, quantity, sections, production_date, employee_id, status, remarks } = req.body;
 
-    if (!batch_number || !quantity || !production_date) {
-      return res.status(400).json({ error: 'batch_number, quantity, and production_date are required' });
+    if (!quantity || !production_date) {
+      return res.status(400).json({ error: 'quantity and production_date are required' });
     }
 
     const production = new BrickProduction({
-      batch_number,
+      batch_number: batch_number || undefined,
       quantity,
+      sections: sections || [],
       production_date,
       employee_id,
       status: status || 'produced',
@@ -96,10 +97,11 @@ router.put('/:id', async (req, res) => {
     const oldEmployeeId = existing.employee_id ? existing.employee_id.toString() : null;
     const oldQuantity = existing.quantity;
 
-    const { batch_number, quantity, production_date, employee_id, status, remarks } = req.body;
+    const { batch_number, quantity, sections, production_date, employee_id, status, remarks } = req.body;
 
-    existing.batch_number = batch_number || existing.batch_number;
+    existing.batch_number = batch_number !== undefined ? batch_number : existing.batch_number;
     existing.quantity = quantity || existing.quantity;
+    existing.sections = sections !== undefined ? sections : existing.sections;
     existing.production_date = production_date || existing.production_date;
     existing.employee_id = employee_id !== undefined ? employee_id : existing.employee_id;
     existing.status = status || existing.status;

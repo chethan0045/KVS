@@ -60,7 +60,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'kiln_number, quantity_loaded, and loading_date are required' });
     }
 
-    const addedWages = quantity_loaded * 0.55;
+    const addedWages = quantity_loaded * 0.60;
 
     // Check if there's an existing active loading for this kiln
     const existing = await KilnLoading.findOne({ kiln_number });
@@ -139,7 +139,7 @@ router.put('/:id', async (req, res) => {
     existing.remarks = remarks !== undefined ? remarks : existing.remarks;
 
     // Recalculate wages
-    existing.total_wages = existing.quantity_loaded * 0.55;
+    existing.total_wages = existing.quantity_loaded * 0.60;
 
     const updated = await existing.save();
 

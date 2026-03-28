@@ -1,13 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-production',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
   template: `
     <!-- Alert -->
     <div *ngIf="alertMessage" class="alert alert-floating" [ngClass]="'alert-' + alertType" role="alert">
@@ -33,11 +33,11 @@ import { ApiService } from '../../services/api.service';
         <thead>
           <tr>
             <th>#</th>
-            <th>Batch Number</th>
             <th>Quantity</th>
+            <th>Sections</th>
             <th>Employee</th>
             <th>Wages (&#8377;)</th>
-            <th>Production Date</th>
+            <th>Date</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -45,8 +45,15 @@ import { ApiService } from '../../services/api.service';
         <tbody>
           <tr *ngFor="let item of productions; let i = index">
             <td>{{ i + 1 }}</td>
-            <td><strong>{{ item.batch_number }}</strong></td>
-            <td>{{ item.quantity | number }}</td>
+            <td><strong>{{ item.quantity | number }}</strong></td>
+            <td>
+              <small *ngIf="item.sections?.length > 0">
+                <span *ngFor="let s of item.sections; let last = last">
+                  {{ s.section_no }}{{ !last ? ', ' : '' }}
+                </span>
+              </small>
+              <span *ngIf="!item.sections?.length">-</span>
+            </td>
             <td>{{ getEmployeeName(item.employee_id) }}</td>
             <td><strong>&#8377;{{ (item.quantity * 1.1) | number:'1.2-2' }}</strong></td>
             <td>{{ item.production_date | date:'mediumDate' }}</td>
@@ -59,7 +66,7 @@ import { ApiService } from '../../services/api.service';
                 {{ item.status === 'ready_for_kiln' ? 'Ready for Kiln' : 'Produced' }}
               </span>
             </td>
-            <td>
+            <td style="white-space: nowrap;">
               <button class="btn btn-warning btn-sm me-1" (click)="openModal(item)">
                 <i class="fas fa-edit"></i>
               </button>
@@ -89,18 +96,40 @@ import { ApiService } from '../../services/api.service';
             </div>
             <div class="modal-body">
               <form [formGroup]="form">
+                <!-- Sections Table -->
                 <div class="mb-3">
-                  <label class="form-label">Batch Number *</label>
-                  <input type="text" class="form-control" formControlName="batch_number"
-                    [ngClass]="{'is-invalid': form.get('batch_number')?.touched && form.get('batch_number')?.invalid}">
-                  <div class="invalid-feedback">Batch number is required</div>
+                  <label class="form-label">Sections / Kana *</label>
+                  <div *ngFor="let section of sections; let sIdx = index"
+                    class="mb-3 p-2" style="background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <div class="d-flex align-items-center mb-2 gap-2">
+                      <input type="text" class="form-control form-control-sm" [(ngModel)]="section.section_no"
+                        [ngModelOptions]="{standalone: true}" placeholder="Section/Kana No." style="max-width: 150px; font-weight: bold;">
+                      <span class="text-muted" style="font-size:0.8rem; flex:1;">= {{ getSectionTotal(sIdx) | number }} bricks</span>
+                      <button class="btn btn-outline-danger btn-sm" (click)="removeSection(sIdx)" *ngIf="sections.length > 1" title="Remove section">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                    <div *ngFor="let entry of section.entries; let eIdx = index" class="d-flex align-items-center mb-1 gap-2">
+                      <input type="text" class="form-control form-control-sm" [(ngModel)]="entry.expr"
+                        [ngModelOptions]="{standalone: true}" placeholder="e.g. 80*30" (input)="calcTotal()" style="flex:1;">
+                      <span class="text-muted" style="min-width:55px; font-size:0.8rem;">= {{ evalExpr(entry.expr) | number }}</span>
+                      <button class="btn btn-outline-danger btn-sm" style="padding:2px 6px;" (click)="removeEntry(sIdx, eIdx)"
+                        *ngIf="section.entries.length > 1" title="Remove">
+                        <i class="fas fa-minus" style="font-size:0.7rem;"></i>
+                      </button>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm mt-1" (click)="addEntry(sIdx)">
+                      <i class="fas fa-plus me-1"></i> Add Row
+                    </button>
+                  </div>
+                  <button type="button" class="btn btn-outline-primary btn-sm" (click)="addSection()">
+                    <i class="fas fa-plus me-1"></i> Add Section
+                  </button>
+                  <div class="mt-2 p-2" style="background:#e8f5e9; border-radius:6px; font-weight:bold; color:#2e7d32;">
+                    Grand Total: {{ totalQty | number }} bricks
+                  </div>
                 </div>
-                <div class="mb-3">
-                  <label class="form-label">Quantity *</label>
-                  <input type="number" class="form-control" formControlName="quantity"
-                    [ngClass]="{'is-invalid': form.get('quantity')?.touched && form.get('quantity')?.invalid}">
-                  <div class="invalid-feedback">Quantity is required and must be positive</div>
-                </div>
+
                 <div class="mb-3">
                   <label class="form-label">Employee</label>
                   <select class="form-select" formControlName="employee_id">
@@ -127,6 +156,13 @@ import { ApiService } from '../../services/api.service';
                   <div class="invalid-feedback">Status is required</div>
                 </div>
                 <div class="mb-3">
+                  <label class="form-label">Wages</label>
+                  <input type="text" class="form-control" readonly
+                    style="background-color: #f8f9fa; font-weight: bold;"
+                    [value]="'\\u20B9' + (totalQty * 1.1).toFixed(2)">
+                  <small class="text-muted">{{ totalQty | number }} x &#8377;1.10</small>
+                </div>
+                <div class="mb-3">
                   <label class="form-label">Remarks</label>
                   <textarea class="form-control" formControlName="remarks" rows="2"></textarea>
                 </div>
@@ -134,7 +170,7 @@ import { ApiService } from '../../services/api.service';
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
-              <button type="button" class="btn btn-brick" (click)="save()" [disabled]="form.invalid">
+              <button type="button" class="btn btn-brick" (click)="save()" [disabled]="form.invalid || totalQty <= 0">
                 <i class="fas fa-save me-1"></i> {{ editingItem ? 'Update' : 'Save' }}
               </button>
             </div>
@@ -154,7 +190,7 @@ import { ApiService } from '../../services/api.service';
               <button type="button" class="btn-close" (click)="showDeleteConfirm = false"></button>
             </div>
             <div class="modal-body">
-              <p>Are you sure you want to delete production batch <strong>{{ deletingItem?.batch_number }}</strong>?</p>
+              <p>Are you sure you want to delete this production record?</p>
               <p class="text-muted mb-0">This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
@@ -178,10 +214,10 @@ export class ProductionComponent implements OnInit {
   deletingItem: any = null;
   alertMessage = '';
   alertType = 'success';
+  sections: { section_no: string; entries: { expr: string }[] }[] = [];
+  totalQty = 0;
 
   form = new FormGroup({
-    batch_number: new FormControl('', Validators.required),
-    quantity: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
     employee_id: new FormControl(''),
     production_date: new FormControl('', Validators.required),
     status: new FormControl('', Validators.required),
@@ -198,10 +234,7 @@ export class ProductionComponent implements OnInit {
   loadData(): void {
     this.apiService.getProductions().subscribe({
       next: (data) => this.productions = data,
-      error: (err) => {
-        console.error('Error:', err);
-        this.showAlert('Failed to load productions', 'danger');
-      }
+      error: () => this.showAlert('Failed to load productions', 'danger')
     });
   }
 
@@ -210,6 +243,45 @@ export class ProductionComponent implements OnInit {
       next: (data) => this.employees = data,
       error: (err) => console.error('Error loading employees:', err)
     });
+  }
+
+  evalExpr(expr: string): number {
+    if (!expr || !expr.trim()) return 0;
+    try {
+      const sanitized = expr.replace(/[^0-9*+\-.]/g, '');
+      if (!sanitized) return 0;
+      const result = Function('"use strict"; return (' + sanitized + ')')();
+      return isNaN(result) ? 0 : Math.round(result);
+    } catch {
+      return 0;
+    }
+  }
+
+  getSectionTotal(sIdx: number): number {
+    return this.sections[sIdx].entries.reduce((sum, e) => sum + this.evalExpr(e.expr), 0);
+  }
+
+  calcTotal(): void {
+    this.totalQty = this.sections.reduce((sum, s) =>
+      sum + s.entries.reduce((eSum, e) => eSum + this.evalExpr(e.expr), 0), 0);
+  }
+
+  addSection(): void {
+    this.sections.push({ section_no: '', entries: [{ expr: '' }] });
+  }
+
+  removeSection(idx: number): void {
+    this.sections.splice(idx, 1);
+    this.calcTotal();
+  }
+
+  addEntry(sIdx: number): void {
+    this.sections[sIdx].entries.push({ expr: '' });
+  }
+
+  removeEntry(sIdx: number, eIdx: number): void {
+    this.sections[sIdx].entries.splice(eIdx, 1);
+    this.calcTotal();
   }
 
   getEmployeeName(employeeId: any): string {
@@ -224,16 +296,27 @@ export class ProductionComponent implements OnInit {
     this.editingItem = item || null;
     if (item) {
       this.form.patchValue({
-        batch_number: item.batch_number,
-        quantity: item.quantity,
         employee_id: item.employee_id ? (typeof item.employee_id === 'object' ? item.employee_id._id : item.employee_id) : '',
         production_date: item.production_date ? item.production_date.substring(0, 10) : '',
         status: item.status,
         remarks: item.remarks || ''
       });
+      if (item.sections && item.sections.length > 0) {
+        this.sections = item.sections.map((s: any) => ({
+          section_no: s.section_no || '',
+          entries: s.entries && s.entries.length > 0
+            ? s.entries.map((e: any) => ({ expr: e.expr || String(e.value || '') }))
+            : [{ expr: '' }]
+        }));
+      } else {
+        this.sections = [{ section_no: '', entries: [{ expr: String(item.quantity) }] }];
+      }
+      this.calcTotal();
     } else {
       this.form.reset();
       this.form.patchValue({ status: 'produced' });
+      this.sections = [{ section_no: '', entries: [{ expr: '' }] }];
+      this.totalQty = 0;
     }
     this.showModal = true;
   }
@@ -242,43 +325,33 @@ export class ProductionComponent implements OnInit {
     this.showModal = false;
     this.editingItem = null;
     this.form.reset();
+    this.sections = [{ section_no: '', entries: [{ expr: '' }] }];
+    this.totalQty = 0;
   }
 
   save(): void {
-    if (this.form.invalid) return;
-    const formValue = this.form.value;
+    if (this.form.invalid || this.totalQty <= 0) return;
+    const sectionsData = this.sections.map(s => ({
+      section_no: s.section_no,
+      entries: s.entries.map(e => ({ expr: e.expr, value: this.evalExpr(e.expr) }))
+    }));
+
     const data = {
-      batch_number: formValue.batch_number,
-      quantity: formValue.quantity,
-      employee_id: formValue.employee_id || null,
-      production_date: formValue.production_date,
-      status: formValue.status,
-      remarks: formValue.remarks
+      ...this.form.value,
+      quantity: this.totalQty,
+      sections: sectionsData,
+      employee_id: this.form.value.employee_id || null
     };
 
     if (this.editingItem) {
       this.apiService.updateProduction(this.editingItem._id, data).subscribe({
-        next: () => {
-          this.showAlert('Production updated successfully', 'success');
-          this.closeModal();
-          this.loadData();
-        },
-        error: (err) => {
-          console.error('Error:', err);
-          this.showAlert('Failed to update production', 'danger');
-        }
+        next: () => { this.showAlert('Production updated', 'success'); this.closeModal(); this.loadData(); },
+        error: (err) => this.showAlert(err.error?.error || 'Failed to update', 'danger')
       });
     } else {
       this.apiService.createProduction(data).subscribe({
-        next: () => {
-          this.showAlert('Production created successfully', 'success');
-          this.closeModal();
-          this.loadData();
-        },
-        error: (err) => {
-          console.error('Error:', err);
-          this.showAlert('Failed to create production', 'danger');
-        }
+        next: () => { this.showAlert('Production created', 'success'); this.closeModal(); this.loadData(); },
+        error: (err) => this.showAlert(err.error?.error || 'Failed to create', 'danger')
       });
     }
   }
@@ -291,17 +364,8 @@ export class ProductionComponent implements OnInit {
   deleteItem(): void {
     if (!this.deletingItem) return;
     this.apiService.deleteProduction(this.deletingItem._id).subscribe({
-      next: () => {
-        this.showAlert('Production deleted successfully', 'success');
-        this.showDeleteConfirm = false;
-        this.deletingItem = null;
-        this.loadData();
-      },
-      error: (err) => {
-        console.error('Error:', err);
-        this.showAlert('Failed to delete production', 'danger');
-        this.showDeleteConfirm = false;
-      }
+      next: () => { this.showAlert('Deleted', 'success'); this.showDeleteConfirm = false; this.deletingItem = null; this.loadData(); },
+      error: () => { this.showAlert('Failed to delete', 'danger'); this.showDeleteConfirm = false; }
     });
   }
 
@@ -314,9 +378,10 @@ export class ProductionComponent implements OnInit {
       .header{display:flex;justify-content:space-between;align-items:center;} .date{color:#666;font-size:0.85rem;}
     </style></head><body>
     <div class="header"><h1>Brick Production Report</h1><span class="date">Generated: ${new Date().toLocaleDateString('en-IN')}</span></div>
-    <table><tr><th>#</th><th>Batch Number</th><th>Quantity</th><th>Employee</th><th>Wages</th><th>Date</th><th>Status</th></tr>`;
+    <table><tr><th>#</th><th>Sections</th><th>Quantity</th><th>Employee</th><th>Wages</th><th>Date</th><th>Status</th></tr>`;
     this.productions.forEach((item, i) => {
-      html += `<tr><td>${i+1}</td><td>${item.batch_number}</td><td>${(item.quantity||0).toLocaleString()}</td>
+      const secs = item.sections?.map((s: any) => s.section_no).filter((n: string) => n).join(', ') || '-';
+      html += `<tr><td>${i+1}</td><td>${secs}</td><td>${(item.quantity||0).toLocaleString()}</td>
         <td>${this.getEmployeeName(item.employee_id)}</td><td>Rs.${(item.quantity*1.1).toFixed(2)}</td>
         <td>${formatDate(item.production_date)}</td><td>${item.status === 'ready_for_kiln' ? 'Ready for Kiln' : 'Produced'}</td></tr>`;
     });
