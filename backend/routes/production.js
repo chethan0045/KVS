@@ -3,7 +3,7 @@ const router = express.Router();
 const BrickProduction = require('../models/BrickProduction');
 const Employee = require('../models/Employee');
 
-const WAGE_RATE = 1.1;
+const WAGE_RATE = 1.2;
 
 // Add wages to employee
 async function addWagesToEmployee(employeeId, quantity) {

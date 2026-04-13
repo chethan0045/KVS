@@ -94,7 +94,7 @@ router.get('/', async (req, res) => {
     for (const prod of productions) {
       if (!prod.employee_id) continue;
       const empId = (typeof prod.employee_id === 'object' ? prod.employee_id._id : prod.employee_id).toString();
-      const wages = prod.quantity * 1.1;
+      const wages = prod.quantity * 1.2;
 
       if (!wagesMap[empId]) {
         const empName = typeof prod.employee_id === 'object' ? prod.employee_id.name : 'Unknown';

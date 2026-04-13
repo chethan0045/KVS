@@ -56,7 +56,7 @@ import { ApiService } from '../../services/api.service';
                 <span *ngIf="!item.sections?.length">-</span>
               </td>
               <td>{{ getEmployeeName(item.employee_id) }}</td>
-              <td><strong>&#8377;{{ (item.quantity * 1.1) | number:'1.2-2' }}</strong></td>
+              <td><strong>&#8377;{{ (item.quantity * 1.2) | number:'1.2-2' }}</strong></td>
               <td>{{ item.production_date | date:'mediumDate' }}</td>
               <td>
                 <span class="badge badge-status"
@@ -204,8 +204,8 @@ import { ApiService } from '../../services/api.service';
                   <label class="form-label">Wages</label>
                   <input type="text" class="form-control" readonly
                     style="background-color: #f8f9fa; font-weight: bold;"
-                    [value]="'\\u20B9' + (totalQty * 1.1).toFixed(2)">
-                  <small class="text-muted">{{ totalQty | number }} x &#8377;1.10</small>
+                    [value]="'\\u20B9' + (totalQty * 1.2).toFixed(2)">
+                  <small class="text-muted">{{ totalQty | number }} x &#8377;1.20</small>
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Remarks</label>
@@ -429,7 +429,7 @@ export class ProductionComponent implements OnInit {
       .info{margin:8px 0;font-size:0.9rem;}
     </style></head><body>
     <h1>Production Detail</h1>
-    <div class="info"><strong>Date:</strong> ${formatDate(item.production_date)} | <strong>Employee:</strong> ${this.getEmployeeName(item.employee_id)} | <strong>Wages:</strong> Rs.${(item.quantity * 1.1).toFixed(2)}</div>
+    <div class="info"><strong>Date:</strong> ${formatDate(item.production_date)} | <strong>Employee:</strong> ${this.getEmployeeName(item.employee_id)} | <strong>Wages:</strong> Rs.${(item.quantity * 1.2).toFixed(2)}</div>
     <table><tr><th>Section/Kana</th><th>Calculation</th><th>Bricks</th></tr>`;
     for (const s of (item.sections || [])) {
       for (let j = 0; j < s.entries.length; j++) {

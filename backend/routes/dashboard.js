@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
       // Production wages = sum(quantity) * 1.1
       BrickProduction.aggregate([
         { $match: { employee_id: { $ne: null } } },
-        { $group: { _id: null, total: { $sum: { $multiply: ['$quantity', 1.1] } } } }
+        { $group: { _id: null, total: { $sum: { $multiply: ['$quantity', 1.2] } } } }
       ]),
       KilnLoading.aggregate([
         { $group: { _id: null, total: { $sum: '$total_wages' } } }
