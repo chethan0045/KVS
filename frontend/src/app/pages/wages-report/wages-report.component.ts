@@ -22,7 +22,15 @@ import { ApiService } from '../../services/api.service';
     <div class="card mb-4" style="border: none; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);">
       <div class="card-body">
         <form [formGroup]="filterForm" class="row g-3 align-items-end">
-          <div class="col-md-6">
+          <div class="col-md-3">
+            <label class="form-label">From Date</label>
+            <input type="date" class="form-control" formControlName="start_date">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">To Date</label>
+            <input type="date" class="form-control" formControlName="end_date">
+          </div>
+          <div class="col-md-3">
             <label class="form-label">Employee</label>
             <select class="form-select" formControlName="employee_id">
               <option value="">All Employees</option>
@@ -31,12 +39,15 @@ import { ApiService } from '../../services/api.service';
               </option>
             </select>
           </div>
-          <div class="col-md-6">
+          <div class="col-md-3">
             <button class="btn btn-brick w-100" (click)="generateReport()">
               <i class="fas fa-search me-1"></i> Generate Report
             </button>
           </div>
         </form>
+        <div class="text-muted mt-2" style="font-size: 0.85rem;">
+          <i class="fas fa-info-circle me-1"></i> Leave dates empty to include all records.
+        </div>
       </div>
     </div>
 
@@ -275,6 +286,8 @@ export class WagesReportComponent implements OnInit {
   grandTotal = 0;
 
   filterForm = new FormGroup({
+    start_date: new FormControl(''),
+    end_date: new FormControl(''),
     employee_id: new FormControl('')
   });
 
@@ -282,6 +295,13 @@ export class WagesReportComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadEmployees();
+    // Default range: first day of current month -> today (local dates)
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    this.filterForm.patchValue({
+      start_date: first.toLocaleDateString('en-CA'),
+      end_date: now.toLocaleDateString('en-CA')
+    });
   }
 
   loadEmployees(): void {
@@ -294,6 +314,8 @@ export class WagesReportComponent implements OnInit {
   generateReport(): void {
     const params: any = {};
     const fv = this.filterForm.value;
+    if (fv.start_date) params.start_date = fv.start_date;
+    if (fv.end_date) params.end_date = fv.end_date;
     if (fv.employee_id) params.employee_id = fv.employee_id;
 
     this.apiService.getWagesReport(params).subscribe({
