@@ -310,6 +310,7 @@ export class KilnLoadingComponent implements OnInit {
       this.calcTotal();
     } else {
       this.form.reset();
+      this.form.patchValue({ loading_date: new Date().toLocaleDateString('en-CA') });
       this.selectedEmployeeIds = [];
       this.qtyEntries = [{ a: null, b: null }];
       this.totalQty = 0;

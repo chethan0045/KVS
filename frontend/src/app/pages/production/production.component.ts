@@ -365,7 +365,7 @@ export class ProductionComponent implements OnInit {
       this.calcTotal();
     } else {
       this.form.reset();
-      this.form.patchValue({ status: 'produced' });
+      this.form.patchValue({ status: 'produced', production_date: new Date().toLocaleDateString('en-CA') });
       this.sections = [{ section_no: '', entries: [{ a: null, b: null }] }];
       this.totalQty = 0;
     }

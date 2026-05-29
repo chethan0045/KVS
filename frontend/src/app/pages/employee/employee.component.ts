@@ -260,7 +260,7 @@ export class EmployeeComponent implements OnInit {
       });
     } else {
       this.form.reset();
-      this.form.patchValue({ status: 'active' });
+      this.form.patchValue({ status: 'active', joining_date: new Date().toLocaleDateString('en-CA') });
     }
     this.showModal = true;
   }

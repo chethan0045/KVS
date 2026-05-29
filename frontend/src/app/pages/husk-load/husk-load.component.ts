@@ -311,7 +311,7 @@ export class HuskLoadComponent implements OnInit {
       });
     } else {
       this.form.reset();
-      this.form.patchValue({ total_paid: 0 });
+      this.form.patchValue({ total_paid: 0, received_date: new Date().toLocaleDateString('en-CA') });
     }
     this.showModal = true;
   }

@@ -446,7 +446,7 @@ export class BrickSalesComponent implements OnInit {
       });
     } else {
       this.form.reset();
-      this.form.patchValue({ driver_wage: 750, helper_wage: 500 });
+      this.form.patchValue({ driver_wage: 750, helper_wage: 500, sale_date: new Date().toLocaleDateString('en-CA') });
     }
     this.showModal = true;
   }

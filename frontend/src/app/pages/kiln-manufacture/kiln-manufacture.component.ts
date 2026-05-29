@@ -414,6 +414,7 @@ export class KilnManufactureComponent implements OnInit {
       this.selectedEmployeeIds = [...this.getEmployeeIds(item)];
     } else {
       this.form.reset();
+      this.form.patchValue({ manufacture_date: new Date().toLocaleDateString('en-CA') });
       this.selectedEmployeeIds = [];
     }
     this.showModal = true;
