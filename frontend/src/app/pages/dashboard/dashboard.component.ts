@@ -1,10 +1,7 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../services/api.service';
-import { Chart, registerables } from 'chart.js';
-
-Chart.register(...registerables);
 
 @Component({
   selector: 'app-dashboard',
@@ -164,57 +161,6 @@ Chart.register(...registerables);
         </div>
       </div>
     </div>
-
-    <!-- ============ CHARTS ============ -->
-    <h5 class="section-title"><i class="fas fa-chart-line me-2"></i>Insights</h5>
-    <div class="row g-3 mb-4">
-      <!-- Monthly trend (line) -->
-      <div class="col-lg-8">
-        <div class="card chart-card h-100">
-          <div class="card-body">
-            <div class="chart-title">Production vs Sales — last 6 months</div>
-            <div class="chart-wrap" style="height: 280px;">
-              <canvas #trendCanvas></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Pipeline (bar) -->
-      <div class="col-lg-4">
-        <div class="card chart-card h-100">
-          <div class="card-body">
-            <div class="chart-title">Brick Pipeline</div>
-            <div class="chart-wrap" style="height: 280px;">
-              <canvas #pipelineCanvas></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="row g-3 mb-4">
-      <!-- Collections (doughnut) -->
-      <div class="col-lg-6">
-        <div class="card chart-card h-100">
-          <div class="card-body">
-            <div class="chart-title">Collections</div>
-            <div class="chart-wrap" style="height: 260px;">
-              <canvas #collectionsCanvas></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Payables (doughnut) -->
-      <div class="col-lg-6">
-        <div class="card chart-card h-100">
-          <div class="card-body">
-            <div class="chart-title">Payables</div>
-            <div class="chart-wrap" style="height: 260px;">
-              <canvas #payablesCanvas></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   `,
   styles: [`
     .section-title {
@@ -225,29 +171,9 @@ Chart.register(...registerables);
       padding-bottom: 0.4rem;
       border-bottom: 2px solid #e8e0d8;
     }
-    .chart-card {
-      border: none;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    }
-    .chart-title {
-      font-weight: 700;
-      color: #8B4513;
-      font-size: 0.95rem;
-      margin-bottom: 0.75rem;
-    }
-    .chart-wrap {
-      position: relative;
-      width: 100%;
-    }
   `]
 })
-export class DashboardComponent implements OnInit, AfterViewInit {
-  @ViewChild('trendCanvas') trendCanvas!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('pipelineCanvas') pipelineCanvas!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('collectionsCanvas') collectionsCanvas!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('payablesCanvas') payablesCanvas!: ElementRef<HTMLCanvasElement>;
-
+export class DashboardComponent implements OnInit {
   // Pipeline (brick quantities)
   totalProduced = 0;
   totalInKiln = 0;
@@ -271,21 +197,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   alertMessage = '';
   alertType = 'info';
 
-  private viewReady = false;
-  private summaryLoaded = false;
-  private trendData: any = null;
-  private charts: Chart[] = [];
-
   constructor(private apiService: ApiService) {}
 
   ngOnInit(): void {
     this.loadDashboard();
-    this.loadTrend();
-  }
-
-  ngAfterViewInit(): void {
-    this.viewReady = true;
-    this.tryRenderCharts();
   }
 
   get pipeline() {
@@ -325,8 +240,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         this.customerTotalAmount = s.customer_total_amount || 0;
         this.customerTotalPaid = s.customer_total_paid || 0;
         this.customerBalance = s.customer_balance || 0;
-        this.summaryLoaded = true;
-        this.tryRenderCharts();
       },
       error: (err) => {
         console.error('Error loading dashboard:', err);
@@ -335,142 +248,5 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         setTimeout(() => this.alertMessage = '', 3000);
       }
     });
-  }
-
-  loadTrend(): void {
-    this.apiService.getDashboardTrend(6).subscribe({
-      next: (data) => {
-        this.trendData = data;
-        this.tryRenderCharts();
-      },
-      error: (err) => console.error('Error loading trend:', err)
-    });
-  }
-
-  private tryRenderCharts(): void {
-    if (!this.viewReady) return;
-    if (this.summaryLoaded) {
-      this.renderPipelineChart();
-      this.renderCollectionsChart();
-      this.renderPayablesChart();
-    }
-    if (this.trendData) {
-      this.renderTrendChart();
-    }
-  }
-
-  private renderTrendChart(): void {
-    if (!this.trendCanvas) return;
-    this.destroyChart('trend');
-    const d = this.trendData;
-    const chart = new Chart(this.trendCanvas.nativeElement, {
-      type: 'line',
-      data: {
-        labels: d.labels,
-        datasets: [
-          {
-            label: 'Produced', data: d.produced, borderColor: '#c0392b',
-            backgroundColor: 'rgba(192,57,43,0.1)', fill: true, tension: 0.3, pointRadius: 3
-          },
-          {
-            label: 'Sold', data: d.sold, borderColor: '#2980b9',
-            backgroundColor: 'rgba(41,128,185,0.1)', fill: true, tension: 0.3, pointRadius: 3
-          }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } },
-        scales: { y: { beginAtZero: true, ticks: { callback: (v) => Number(v).toLocaleString() } } }
-      }
-    });
-    this.charts.push(chart);
-  }
-
-  private renderPipelineChart(): void {
-    if (!this.pipelineCanvas) return;
-    this.destroyChart('pipeline');
-    const chart = new Chart(this.pipelineCanvas.nativeElement, {
-      type: 'bar',
-      data: {
-        labels: ['Produced', 'In Kiln', 'In Fire', 'Ready', 'Sold'],
-        datasets: [{
-          label: 'Bricks',
-          data: [this.totalProduced, this.totalInKiln, this.totalInFire, this.totalReady, this.totalSold],
-          backgroundColor: ['#c0392b', '#e67e22', '#8B4513', '#27ae60', '#2980b9']
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { callback: (v) => Number(v).toLocaleString() } } }
-      }
-    });
-    this.charts.push(chart);
-  }
-
-  private renderCollectionsChart(): void {
-    if (!this.collectionsCanvas) return;
-    this.destroyChart('collections');
-    const chart = new Chart(this.collectionsCanvas.nativeElement, {
-      type: 'doughnut',
-      data: {
-        labels: ['Collected', 'Balance to Collect'],
-        datasets: [{
-          data: [this.customerTotalPaid, Math.max(0, this.customerBalance)],
-          backgroundColor: ['#27ae60', '#dc3545']
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom' },
-          tooltip: { callbacks: { label: (c) => `${c.label}: ₹${Number(c.raw).toLocaleString()}` } }
-        }
-      }
-    });
-    this.charts.push(chart);
-  }
-
-  private renderPayablesChart(): void {
-    if (!this.payablesCanvas) return;
-    this.destroyChart('payables');
-    const chart = new Chart(this.payablesCanvas.nativeElement, {
-      type: 'doughnut',
-      data: {
-        labels: ['Wages to Pay', 'Husk to Pay'],
-        datasets: [{
-          data: [Math.max(0, this.wagesBalance), Math.max(0, this.huskBalance)],
-          backgroundColor: ['#c0392b', '#8B4513']
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom' },
-          tooltip: { callbacks: { label: (c) => `${c.label}: ₹${Number(c.raw).toLocaleString()}` } }
-        }
-      }
-    });
-    this.charts.push(chart);
-  }
-
-  // Destroy any existing Chart bound to this canvas before re-rendering,
-  // so repeated data loads don't stack instances on the same element.
-  private destroyChart(tag: string): void {
-    const canvas = this.canvasFor(tag);
-    if (!canvas) return;
-    const existing = Chart.getChart(canvas);
-    if (existing) existing.destroy();
-  }
-
-  private canvasFor(tag: string): HTMLCanvasElement | undefined {
-    switch (tag) {
-      case 'trend': return this.trendCanvas?.nativeElement;
-      case 'pipeline': return this.pipelineCanvas?.nativeElement;
-      case 'collections': return this.collectionsCanvas?.nativeElement;
-      case 'payables': return this.payablesCanvas?.nativeElement;
-      default: return undefined;
-    }
   }
 }

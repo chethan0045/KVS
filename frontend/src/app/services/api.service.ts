@@ -15,10 +15,6 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/dashboard`);
   }
 
-  getDashboardTrend(months = 6): Observable<any> {
-    return this.http.get(`${this.baseUrl}/dashboard/trend`, { params: { months: String(months) } });
-  }
-
   // Productions
   getProductions(): Observable<any> {
     return this.http.get(`${this.baseUrl}/productions`);
