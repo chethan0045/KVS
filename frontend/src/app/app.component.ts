@@ -2,12 +2,21 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from './services/auth.service';
+import { LoadingService } from './services/loading.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
+    <!-- Global loading overlay (shows while any HTTP request is in flight) -->
+    <div class="global-loader" *ngIf="loadingService.loading$ | async">
+      <div class="global-loader-box">
+        <div class="spinner-ring"></div>
+        <div class="global-loader-text">Loading…</div>
+      </div>
+    </div>
+
     <ng-container *ngIf="authService.isLoggedIn; else loginView">
       <!-- Mobile top bar -->
       <div class="mobile-topbar">
@@ -102,13 +111,47 @@ import { AuthService } from './services/auth.service';
     <ng-template #loginView>
       <router-outlet></router-outlet>
     </ng-template>
-  `
+  `,
+  styles: [`
+    .global-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(2px);
+    }
+    .global-loader-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .spinner-ring {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #e8e0d8;
+      border-top-color: #c0392b;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .global-loader-text {
+      color: #8B4513;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `]
 })
 export class AppComponent {
   userName = '';
   sidebarOpen = false;
 
-  constructor(public authService: AuthService, private router: Router) {
+  constructor(public authService: AuthService, public loadingService: LoadingService, private router: Router) {
     this.updateUserName();
     this.authService.isLoggedIn$.subscribe(() => this.updateUserName());
   }
