@@ -295,13 +295,7 @@ export class WagesReportComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadEmployees();
-    // Default range: first day of current month -> today (local dates)
-    const now = new Date();
-    const first = new Date(now.getFullYear(), now.getMonth(), 1);
-    this.filterForm.patchValue({
-      start_date: first.toLocaleDateString('en-CA'),
-      end_date: now.toLocaleDateString('en-CA')
-    });
+    // Dates default to empty = include all records; user can narrow the range
   }
 
   loadEmployees(): void {
