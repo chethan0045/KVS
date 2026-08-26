@@ -8,6 +8,8 @@ const kilnLoadingSchema = new Schema({
   loading_date: { type: Date, required: true },
   status: { type: String, default: 'loading' },
   quantity_sold: { type: Number, default: 0 },
+  // Rs per brick, captured from WageSetting at creation; legacy records default to 0.60
+  wage_rate: { type: Number, default: 0.60 },
   total_wages: { type: Number, default: 0 },
   remarks: { type: String }
 }, { timestamps: true });

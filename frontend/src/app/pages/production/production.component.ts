@@ -56,7 +56,7 @@ import { ApiService } from '../../services/api.service';
                 <span *ngIf="!item.sections?.length">-</span>
               </td>
               <td>{{ getEmployeeName(item.employee_id) }}</td>
-              <td><strong>&#8377;{{ (item.quantity * 1.2) | number:'1.2-2' }}</strong></td>
+              <td><strong>&#8377;{{ (item.quantity * (item.wage_rate ?? 1.2)) | number:'1.2-2' }}</strong></td>
               <td>{{ item.production_date | date:'mediumDate' }}</td>
               <td>
                 <span class="badge badge-status"
@@ -204,8 +204,8 @@ import { ApiService } from '../../services/api.service';
                   <label class="form-label">Wages</label>
                   <input type="text" class="form-control" readonly
                     style="background-color: #f8f9fa; font-weight: bold;"
-                    [value]="'\\u20B9' + (totalQty * 1.2).toFixed(2)">
-                  <small class="text-muted">{{ totalQty | number }} x &#8377;1.20</small>
+                    [value]="'\\u20B9' + (totalQty * formRate).toFixed(2)">
+                  <small class="text-muted">{{ totalQty | number }} x &#8377;{{ formRate | number:'1.2-2' }}</small>
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Remarks</label>
@@ -262,6 +262,8 @@ export class ProductionComponent implements OnInit {
   expandedRow: number | null = null;
   sections: { section_no: string; entries: { a: number | null; b: number | null }[] }[] = [];
   totalQty = 0;
+  productionRate = 1.2;  // current rate from Wage Settings, used for new records
+  formRate = 1.2;        // rate shown in the modal (record's own rate when editing)
 
   form = new FormGroup({
     employee_id: new FormControl(''),
@@ -275,6 +277,13 @@ export class ProductionComponent implements OnInit {
   ngOnInit(): void {
     this.loadData();
     this.loadEmployees();
+    this.apiService.getWageSettings().subscribe({
+      next: (s) => {
+        this.productionRate = s.production_rate ?? 1.2;
+        this.formRate = this.productionRate;
+      },
+      error: () => {}
+    });
   }
 
   loadData(): void {
@@ -345,6 +354,7 @@ export class ProductionComponent implements OnInit {
 
   openModal(item?: any): void {
     this.editingItem = item || null;
+    this.formRate = item ? (item.wage_rate ?? 1.2) : this.productionRate;
     if (item) {
       this.form.patchValue({
         employee_id: item.employee_id ? (typeof item.employee_id === 'object' ? item.employee_id._id : item.employee_id) : '',
@@ -429,7 +439,7 @@ export class ProductionComponent implements OnInit {
       .info{margin:8px 0;font-size:0.9rem;}
     </style></head><body>
     <h1>Production Detail</h1>
-    <div class="info"><strong>Date:</strong> ${formatDate(item.production_date)} | <strong>Employee:</strong> ${this.getEmployeeName(item.employee_id)} | <strong>Wages:</strong> Rs.${(item.quantity * 1.2).toFixed(2)}</div>
+    <div class="info"><strong>Date:</strong> ${formatDate(item.production_date)} | <strong>Employee:</strong> ${this.getEmployeeName(item.employee_id)} | <strong>Wages:</strong> Rs.${(item.quantity * (item.wage_rate ?? 1.2)).toFixed(2)}</div>
     <table><tr><th>Section/Kana</th><th>Calculation</th><th>Bricks</th></tr>`;
     for (const s of (item.sections || [])) {
       for (let j = 0; j < s.entries.length; j++) {
@@ -457,7 +467,7 @@ export class ProductionComponent implements OnInit {
     this.productions.forEach((item, i) => {
       const secs = item.sections?.map((s: any) => s.section_no).filter((n: string) => n).join(', ') || '-';
       html += `<tr><td>${i+1}</td><td>${secs}</td><td>${(item.quantity||0).toLocaleString()}</td>
-        <td>${this.getEmployeeName(item.employee_id)}</td><td>Rs.${(item.quantity*1.1).toFixed(2)}</td>
+        <td>${this.getEmployeeName(item.employee_id)}</td><td>Rs.${(item.quantity * (item.wage_rate ?? 1.2)).toFixed(2)}</td>
         <td>${formatDate(item.production_date)}</td><td>${item.status === 'ready_for_kiln' ? 'Ready for Kiln' : 'Produced'}</td></tr>`;
     });
     html += `</table></body></html>`;

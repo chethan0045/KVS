@@ -2,22 +2,21 @@ const express = require('express');
 const router = express.Router();
 const BrickProduction = require('../models/BrickProduction');
 const Employee = require('../models/Employee');
+const WageSetting = require('../models/WageSetting');
 
-const WAGE_RATE = 1.2;
-
-// Add wages to employee
-async function addWagesToEmployee(employeeId, quantity) {
+// Add wages to employee (rate comes from the record's captured wage_rate)
+async function addWagesToEmployee(employeeId, quantity, rate) {
   if (!employeeId || !quantity) return;
-  const wages = quantity * WAGE_RATE;
+  const wages = quantity * rate;
   await Employee.findByIdAndUpdate(employeeId, {
     $inc: { total_wages_earned: wages, balance: wages }
   });
 }
 
 // Reverse wages from employee
-async function reverseWagesFromEmployee(employeeId, quantity) {
+async function reverseWagesFromEmployee(employeeId, quantity, rate) {
   if (!employeeId || !quantity) return;
-  const wages = quantity * WAGE_RATE;
+  const wages = quantity * rate;
   await Employee.findByIdAndUpdate(employeeId, {
     $inc: { total_wages_earned: -wages, balance: -wages }
   });
@@ -58,12 +57,15 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'quantity and production_date are required' });
     }
 
+    const settings = await WageSetting.getSettings();
+
     const production = new BrickProduction({
       batch_number: batch_number || undefined,
       quantity,
       sections: sections || [],
       production_date,
       employee_id,
+      wage_rate: settings.production_rate,
       status: status || 'produced',
       remarks
     });
@@ -72,7 +74,7 @@ router.post('/', async (req, res) => {
 
     // Add wages to employee
     if (saved.employee_id) {
-      await addWagesToEmployee(saved.employee_id, saved.quantity);
+      await addWagesToEmployee(saved.employee_id, saved.quantity, saved.wage_rate);
     }
 
     const populated = await saved.populate('employee_id');
@@ -93,9 +95,10 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Production not found' });
     }
 
-    // Store old values to reverse wages
+    // Store old values to reverse wages (record keeps its captured rate on edits)
     const oldEmployeeId = existing.employee_id ? existing.employee_id.toString() : null;
     const oldQuantity = existing.quantity;
+    const wageRate = existing.wage_rate ?? 1.2;
 
     const { batch_number, quantity, sections, production_date, employee_id, status, remarks } = req.body;
 
@@ -111,10 +114,10 @@ router.put('/:id', async (req, res) => {
 
     // Reverse old wages, add new wages
     if (oldEmployeeId) {
-      await reverseWagesFromEmployee(oldEmployeeId, oldQuantity);
+      await reverseWagesFromEmployee(oldEmployeeId, oldQuantity, wageRate);
     }
     if (updated.employee_id) {
-      await addWagesToEmployee(updated.employee_id, updated.quantity);
+      await addWagesToEmployee(updated.employee_id, updated.quantity, wageRate);
     }
 
     const populated = await updated.populate('employee_id');
@@ -137,7 +140,7 @@ router.delete('/:id', async (req, res) => {
 
     // Reverse wages from employee before deleting
     if (existing.employee_id) {
-      await reverseWagesFromEmployee(existing.employee_id, existing.quantity);
+      await reverseWagesFromEmployee(existing.employee_id, existing.quantity, existing.wage_rate ?? 1.2);
     }
 
     await BrickProduction.findByIdAndDelete(req.params.id);

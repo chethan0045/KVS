@@ -271,6 +271,8 @@ export class BrickSalesComponent implements OnInit {
   deletingItem: any = null;
   alertMessage = '';
   alertType = 'success';
+  defaultDriverWage = 750;  // from Wage Settings, applied to new sales
+  defaultHelperWage = 500;
 
   form = new FormGroup({
     kiln_loading_id: new FormControl('', Validators.required),
@@ -294,6 +296,13 @@ export class BrickSalesComponent implements OnInit {
     this.loadKilnLoadings();
     this.loadEmployees();
     this.setupAutoCalculate();
+    this.apiService.getWageSettings().subscribe({
+      next: (s) => {
+        this.defaultDriverWage = s.driver_wage ?? 750;
+        this.defaultHelperWage = s.helper_wage ?? 500;
+      },
+      error: () => {}
+    });
   }
 
   setupAutoCalculate(): void {
@@ -446,7 +455,11 @@ export class BrickSalesComponent implements OnInit {
       });
     } else {
       this.form.reset();
-      this.form.patchValue({ driver_wage: 750, helper_wage: 500, sale_date: new Date().toLocaleDateString('en-CA') });
+      this.form.patchValue({
+        driver_wage: this.defaultDriverWage,
+        helper_wage: this.defaultHelperWage,
+        sale_date: new Date().toLocaleDateString('en-CA')
+      });
     }
     this.showModal = true;
   }

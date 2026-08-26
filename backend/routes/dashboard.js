@@ -52,10 +52,10 @@ router.get('/', async (req, res) => {
       BrickSale.aggregate([
         { $group: { _id: null, total: { $sum: '$total_amount' } } }
       ]),
-      // Production wages = sum(quantity) * 1.1
+      // Production wages = sum(quantity * captured rate); legacy records default to 1.2
       BrickProduction.aggregate([
         { $match: { employee_id: { $ne: null } } },
-        { $group: { _id: null, total: { $sum: { $multiply: ['$quantity', 1.2] } } } }
+        { $group: { _id: null, total: { $sum: { $multiply: ['$quantity', { $ifNull: ['$wage_rate', 1.2] }] } } } }
       ]),
       KilnLoading.aggregate([
         { $group: { _id: null, total: { $sum: '$total_wages' } } }

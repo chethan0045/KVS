@@ -150,6 +150,10 @@ export class ApiService {
   deleteHuskLoad(id: string): Observable<any> { return this.http.delete(`${this.baseUrl}/husk-loads/${id}`); }
   payHuskLoad(id: string, amount: number): Observable<any> { return this.http.post(`${this.baseUrl}/husk-loads/${id}/pay`, { amount }); }
 
+  // Wage Settings
+  getWageSettings(): Observable<any> { return this.http.get(`${this.baseUrl}/wage-settings`); }
+  updateWageSettings(data: any): Observable<any> { return this.http.put(`${this.baseUrl}/wage-settings`, data); }
+
   // Archives
   getArchives(): Observable<any> { return this.http.get(`${this.baseUrl}/archives`); }
   getArchive(id: string): Observable<any> { return this.http.get(`${this.baseUrl}/archives/${id}`); }

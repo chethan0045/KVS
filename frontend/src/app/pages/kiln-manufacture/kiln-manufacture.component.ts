@@ -183,7 +183,7 @@ import { ApiService } from '../../services/api.service';
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Work Type *</label>
-                  <select class="form-select" formControlName="quality_grade"
+                  <select class="form-select" formControlName="quality_grade" (change)="onWorkTypeChange()"
                     [ngClass]="{'is-invalid': form.get('quality_grade')?.touched && form.get('quality_grade')?.invalid}">
                     <option value="">Select work type</option>
                     <option value="Husk Loading">Husk Loading</option>
@@ -220,6 +220,9 @@ import { ApiService } from '../../services/api.service';
                     placeholder="Enter wages amount"
                     [ngClass]="{'is-invalid': form.get('total_wages')?.touched && form.get('total_wages')?.invalid}">
                   <div class="invalid-feedback">Wages amount is required</div>
+                  <small class="text-muted d-block">
+                    Auto-filled from Wage Settings for the selected work type; you can override it.
+                  </small>
                   <small class="text-muted" *ngIf="selectedEmployeeIds.length > 0 && form.get('total_wages')?.value">
                     Per employee: &#8377;{{ getPerEmployeeWage(form.get('total_wages')?.value || 0, selectedEmployeeIds.length) | number:'1.2-2' }}
                   </small>
@@ -270,6 +273,7 @@ export class KilnManufactureComponent implements OnInit {
   manufactures: any[] = [];
   kilnLoadings: any[] = [];
   employees: any[] = [];
+  wageSettings: any = null;
   selectedEmployeeIds: string[] = [];
   showModal = false;
   showDeleteConfirm = false;
@@ -292,6 +296,28 @@ export class KilnManufactureComponent implements OnInit {
     this.loadData();
     this.loadKilnLoadings();
     this.loadEmployees();
+    this.apiService.getWageSettings().subscribe({
+      next: (s) => this.wageSettings = s,
+      error: () => {}
+    });
+  }
+
+  // Flat wage per work type, from Wage Settings
+  getWorkTypeWage(workType: string): number {
+    if (!this.wageSettings) return 0;
+    const fields: any = {
+      'Husk Loading': 'husk_loading_wage',
+      'DBA': 'dba_wage',
+      'Wall': 'wall_wage',
+      'Cleaning': 'cleaning_wage'
+    };
+    const field = fields[workType];
+    return field ? (this.wageSettings[field] || 0) : 0;
+  }
+
+  onWorkTypeChange(): void {
+    const workType = this.form.get('quality_grade')?.value || '';
+    this.form.patchValue({ total_wages: this.getWorkTypeWage(workType) });
   }
 
   loadData(): void {
@@ -384,10 +410,6 @@ export class KilnManufactureComponent implements OnInit {
 
   getPerEmployeeWage(totalWages: number, employeeCount: number): number {
     return employeeCount > 0 ? totalWages / employeeCount : 0;
-  }
-
-  calculateWages(quantity: number): number {
-    return (quantity || 0) * 1.1;
   }
 
   toggleEmployee(id: string): void {

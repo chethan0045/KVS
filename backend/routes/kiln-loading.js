@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const KilnLoading = require('../models/KilnLoading');
 const Employee = require('../models/Employee');
+const WageSetting = require('../models/WageSetting');
 
 // Add wages to employees (split equally)
 async function addWagesToEmployees(employeeIds, totalWages) {
@@ -66,7 +67,9 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: `Kiln ${kiln_number} is currently ${blocked.status}. Cannot load bricks until it is archived or emptied.` });
     }
 
-    const total_wages = quantity_loaded * 0.60;
+    const settings = await WageSetting.getSettings();
+    const wage_rate = settings.kiln_loading_rate;
+    const total_wages = quantity_loaded * wage_rate;
 
     const loading = new KilnLoading({
       kiln_number,
@@ -74,6 +77,7 @@ router.post('/', async (req, res) => {
       employees: employees || [],
       loading_date,
       status: status || 'loading',
+      wage_rate,
       total_wages,
       remarks
     });
@@ -109,8 +113,8 @@ router.put('/:id', async (req, res) => {
     existing.status = status || existing.status;
     existing.remarks = remarks !== undefined ? remarks : existing.remarks;
 
-    // Recalculate wages
-    existing.total_wages = existing.quantity_loaded * 0.60;
+    // Recalculate wages with the rate captured when the record was created
+    existing.total_wages = existing.quantity_loaded * (existing.wage_rate ?? 0.60);
 
     const updated = await existing.save();
 

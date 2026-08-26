@@ -3,6 +3,15 @@ const router = express.Router();
 const KilnManufacture = require('../models/KilnManufacture');
 const KilnLoading = require('../models/KilnLoading');
 const Employee = require('../models/Employee');
+const WageSetting = require('../models/WageSetting');
+
+// Maps a work type (stored in quality_grade) to its flat wage field in WageSetting
+const WORK_TYPE_WAGE_FIELDS = {
+  'Husk Loading': 'husk_loading_wage',
+  'DBA': 'dba_wage',
+  'Wall': 'wall_wage',
+  'Cleaning': 'cleaning_wage'
+};
 
 // Add wages to employees (split equally)
 async function addWagesToEmployees(employeeIds, totalWages) {
@@ -68,6 +77,14 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Referenced kiln loading not found' });
     }
 
+    // If no wages provided, use the flat wage for this work type from settings
+    let wages = total_wages;
+    if (wages === undefined || wages === null) {
+      const settings = await WageSetting.getSettings();
+      const field = WORK_TYPE_WAGE_FIELDS[quality_grade];
+      wages = field ? (settings[field] || 0) : 0;
+    }
+
     const manufacture = new KilnManufacture({
       kiln_loading_id,
       quantity_manufactured,
@@ -75,7 +92,7 @@ router.post('/', async (req, res) => {
       manufacture_date,
       quality_grade: quality_grade || 'A',
       employees: employees || [],
-      total_wages: total_wages || 0,
+      total_wages: wages,
       status: status || 'manufactured',
       remarks
     });

@@ -87,6 +87,12 @@ import { LoadingService } from './services/loading.service';
             </a>
           </li>
           <li>
+            <a routerLink="/wage-settings" routerLinkActive="active" (click)="closeSidebar()">
+              <i class="fas fa-coins"></i>
+              <span>Wage Settings</span>
+            </a>
+          </li>
+          <li>
             <a routerLink="/old-records" routerLinkActive="active" (click)="closeSidebar()">
               <i class="fas fa-archive"></i>
               <span>Old Records</span>

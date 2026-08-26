@@ -176,7 +176,7 @@ import { ApiService } from '../../services/api.service';
                         <td>{{ d.production_date | date:'mediumDate' }}</td>
                         <td>{{ d.batch_number }}</td>
                         <td>{{ d.quantity | number }}</td>
-                        <td>&#8377;1.20</td>
+                        <td>&#8377;{{ (d.rate ?? 1.2) | number:'1.2-2' }}</td>
                         <td>&#8377;{{ d.wages_earned | number:'1.2-2' }}</td>
                       </tr>
                     </tbody>

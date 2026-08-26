@@ -90,11 +90,12 @@ router.get('/', async (req, res) => {
       };
     }
 
-    // Process brick productions (wage = quantity * 1.1 per employee)
+    // Process brick productions (wage = quantity * rate captured on the record)
     for (const prod of productions) {
       if (!prod.employee_id) continue;
       const empId = (typeof prod.employee_id === 'object' ? prod.employee_id._id : prod.employee_id).toString();
-      const wages = prod.quantity * 1.2;
+      const rate = prod.wage_rate ?? 1.2;
+      const wages = prod.quantity * rate;
 
       if (!wagesMap[empId]) {
         const empName = typeof prod.employee_id === 'object' ? prod.employee_id.name : 'Unknown';
@@ -119,6 +120,7 @@ router.get('/', async (req, res) => {
         batch_number: prod.batch_number,
         production_date: prod.production_date,
         quantity: prod.quantity,
+        rate: rate,
         wages_earned: wages
       });
     }

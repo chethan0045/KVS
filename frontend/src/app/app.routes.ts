@@ -10,6 +10,7 @@ import { CustomerComponent } from './pages/customer/customer.component';
 import { HuskLoadComponent } from './pages/husk-load/husk-load.component';
 import { LoginComponent } from './pages/login/login.component';
 import { OldRecordsComponent } from './pages/old-records/old-records.component';
+import { WageSettingsComponent } from './pages/wage-settings/wage-settings.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -21,6 +22,7 @@ export const routes: Routes = [
   { path: 'brick-sales', component: BrickSalesComponent, canActivate: [authGuard] },
   { path: 'employees', component: EmployeeComponent, canActivate: [authGuard] },
   { path: 'wages-report', component: WagesReportComponent, canActivate: [authGuard] },
+  { path: 'wage-settings', component: WageSettingsComponent, canActivate: [authGuard] },
   { path: 'customers', component: CustomerComponent, canActivate: [authGuard] },
   { path: 'husk-loads', component: HuskLoadComponent, canActivate: [authGuard] },
   { path: 'old-records', component: OldRecordsComponent, canActivate: [authGuard] },

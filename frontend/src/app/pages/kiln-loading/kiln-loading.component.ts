@@ -55,10 +55,10 @@ import { ApiService } from '../../services/api.service';
             </td>
             <td>{{ item.loading_date | date:'mediumDate' }}</td>
             <td>
-              <strong>&#8377;{{ item.total_wages || calculateWages(item.quantity_loaded) | number:'1.2-2' }}</strong>
+              <strong>&#8377;{{ getItemWages(item) | number:'1.2-2' }}</strong>
               <br *ngIf="getEmployeeIds(item).length > 0">
               <small *ngIf="getEmployeeIds(item).length > 0" class="text-muted">
-                &#8377;{{ getPerEmployeeWage(item.total_wages || calculateWages(item.quantity_loaded), getEmployeeIds(item).length) | number:'1.2-2' }}/person
+                &#8377;{{ getPerEmployeeWage(getItemWages(item), getEmployeeIds(item).length) | number:'1.2-2' }}/person
               </small>
             </td>
             <td>
@@ -161,11 +161,11 @@ import { ApiService } from '../../services/api.service';
                   <label class="form-label">Total Wages</label>
                   <input type="text" class="form-control" readonly
                     style="background-color: #f8f9fa; font-weight: bold;"
-                    [value]="'\\u20B9' + calculateWages(totalQty).toFixed(2)">
+                    [value]="'\\u20B9' + (totalQty * formRate).toFixed(2)">
                   <small class="text-muted">
-                    {{ totalQty | number }} x &#8377;0.60
+                    {{ totalQty | number }} x &#8377;{{ formRate | number:'1.2-2' }}
                     <span *ngIf="selectedEmployeeIds.length > 0">
-                      | Per employee: &#8377;{{ getPerEmployeeWage(calculateWages(totalQty), selectedEmployeeIds.length).toFixed(2) }}
+                      | Per employee: &#8377;{{ getPerEmployeeWage(totalQty * formRate, selectedEmployeeIds.length).toFixed(2) }}
                     </span>
                   </small>
                 </div>
@@ -224,6 +224,8 @@ export class KilnLoadingComponent implements OnInit {
   alertType = 'success';
   qtyEntries: { a: number | null; b: number | null }[] = [{ a: null, b: null }];
   totalQty = 0;
+  loadingRate = 0.60;  // current rate from Wage Settings, used for new records
+  formRate = 0.60;     // rate shown in the modal (record's own rate when editing)
 
   form = new FormGroup({
     kiln_number: new FormControl('', Validators.required),
@@ -236,6 +238,13 @@ export class KilnLoadingComponent implements OnInit {
   ngOnInit(): void {
     this.loadData();
     this.loadEmployees();
+    this.apiService.getWageSettings().subscribe({
+      next: (s) => {
+        this.loadingRate = s.kiln_loading_rate ?? 0.60;
+        this.formRate = this.loadingRate;
+      },
+      error: () => {}
+    });
   }
 
   loadData(): void {
@@ -284,8 +293,8 @@ export class KilnLoadingComponent implements OnInit {
     return employeeCount > 0 ? totalWages / employeeCount : 0;
   }
 
-  calculateWages(quantity: number): number {
-    return (quantity || 0) * 0.60;
+  getItemWages(item: any): number {
+    return item.total_wages || (item.quantity_loaded || 0) * (item.wage_rate ?? 0.60);
   }
 
   toggleEmployee(id: string): void {
@@ -299,6 +308,7 @@ export class KilnLoadingComponent implements OnInit {
 
   openModal(item?: any): void {
     this.editingItem = item || null;
+    this.formRate = item ? (item.wage_rate ?? 0.60) : this.loadingRate;
     if (item) {
       this.form.patchValue({
         kiln_number: item.kiln_number,
@@ -329,12 +339,12 @@ export class KilnLoadingComponent implements OnInit {
 
   save(): void {
     if (this.form.invalid || this.totalQty <= 0) return;
+    // total_wages is computed by the backend from the record's captured rate
     const data = {
       ...this.form.value,
       quantity_loaded: this.totalQty,
       status: this.editingItem ? this.editingItem.status : 'loading',
-      employees: this.selectedEmployeeIds,
-      total_wages: this.calculateWages(this.totalQty)
+      employees: this.selectedEmployeeIds
     };
 
     if (this.editingItem) {
@@ -378,7 +388,7 @@ export class KilnLoadingComponent implements OnInit {
     <div class="header"><h1>Kiln Loading Report</h1><span class="date">Generated: ${new Date().toLocaleDateString('en-IN')}</span></div>
     <table><tr><th>#</th><th>Kiln</th><th>Qty Loaded</th><th>Employees</th><th>Date</th><th>Wages</th><th>Status</th></tr>`;
     this.kilnLoadings.forEach((item, i) => {
-      const wages = item.total_wages || this.calculateWages(item.quantity_loaded);
+      const wages = this.getItemWages(item);
       html += `<tr><td>${i+1}</td><td>Kiln ${item.kiln_number}</td><td>${(item.quantity_loaded||0).toLocaleString()}</td>
         <td>${getEmpNames(item)}</td><td>${formatDate(item.loading_date)}</td><td>Rs.${wages.toFixed(2)}</td><td>${item.status}</td></tr>`;
     });

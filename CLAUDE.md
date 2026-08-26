@@ -64,13 +64,13 @@ Route handlers maintain aggregate fields on related documents and must keep **ad
 
 When editing any of these routes, every code path that writes a record must have a matching reversal path, or ledger balances silently drift.
 
-### Wage rates are hardcoded and duplicated
+### Wage rates live in WageSetting (single-doc collection)
 
-Changing a rate means updating **all** of these places (the report/dashboard recompute wages from quantities rather than reading stored totals):
+`models/WageSetting.js` holds all configurable rates, edited on the frontend "Wage Settings" page via `/api/wage-settings` (GET/PUT): `production_rate` (₹/brick), `kiln_loading_rate` (₹/brick), `driver_wage`/`helper_wage` (flat per sale trip), and flat per-record wages for the kiln work types (`husk_loading_wage`, `dba_wage`, `wall_wage`, `cleaning_wage` — the manufacture page's `quality_grade` values).
 
-- Production: quantity × **1.2** — `routes/production.js` (`WAGE_RATE`), `routes/wages-report.js`, `routes/dashboard.js` (aggregation `$multiply`)
-- Kiln loading: quantity_loaded × **0.60** — `routes/kiln-loading.js` (POST and PUT)
-- Sale delivery: driver **750** / helper **500** defaults — `models/BrickSale.js`, `routes/brick-sale.js`, `routes/wages-report.js` (twice: live + archived)
+**Rates are captured onto each record at creation** (`wage_rate` on BrickProduction and KilnLoading; `total_wages` stored everywhere): changing a setting affects only records created afterwards, and edits/deletes reverse wages using the record's captured rate, never the current setting. Legacy records without `wage_rate` fall back to 1.2 (production) / 0.60 (loading) — keep those fallbacks (`?? 1.2`, `$ifNull`) when touching `wages-report.js` or `dashboard.js`, since `.lean()` skips schema defaults. Driver/helper fallbacks **750**/**500** still appear in `models/BrickSale.js`, `routes/brick-sale.js`, and `routes/wages-report.js` for legacy sale records.
+
+Kiln manufacture records (`quality_grade` = work type: Husk Loading, DBA, Wall, Cleaning; `quantity_manufactured` is always 0 from the UI) take a manually editable `total_wages`, auto-filled on the frontend from the work type's flat wage.
 
 ### Kiln lifecycle & archiving
 

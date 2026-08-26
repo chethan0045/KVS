@@ -10,6 +10,8 @@ const brickProductionSchema = new Schema({
   }],
   production_date: { type: Date, required: true },
   employee_id: { type: Schema.Types.ObjectId, ref: 'Employee' },
+  // Rs per brick, captured from WageSetting at creation; legacy records default to 1.2
+  wage_rate: { type: Number, default: 1.2 },
   status: { type: String, default: 'produced' },
   remarks: { type: String }
 }, { timestamps: true });
