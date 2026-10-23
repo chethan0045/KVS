@@ -536,3 +536,25 @@ body {
     font-size: 1.4rem;
   }
 }
+
+/* --- theme colour (AI Assistant) --- */
+:root {
+  --app-primary: #16a34a;
+  --app-primary-hover: #138c40;
+  --app-primary-soft: #dcf1e4;
+  --bs-primary: #16a34a;
+  --bs-primary-rgb: 22, 163, 74;
+  --bs-link-color: #16a34a;
+  --bs-link-hover-color: #138c40;
+  --bs-link-color-rgb: 22, 163, 74;
+}
+.btn-primary { --bs-btn-bg: #16a34a; --bs-btn-border-color: #16a34a; --bs-btn-hover-bg: #138c40; --bs-btn-hover-border-color: #138c40; --bs-btn-active-bg: #138c40; --bs-btn-active-border-color: #138c40; --bs-btn-disabled-bg: #16a34a; --bs-btn-disabled-border-color: #16a34a; }
+.btn-outline-primary { --bs-btn-color: #16a34a; --bs-btn-border-color: #16a34a; --bs-btn-hover-bg: #16a34a; --bs-btn-hover-border-color: #16a34a; --bs-btn-active-bg: #16a34a; --bs-btn-active-border-color: #16a34a; }
+.bg-primary { background-color: #16a34a !important; }
+.text-primary { color: #16a34a !important; }
+.border-primary { border-color: #16a34a !important; }
+.form-check-input:checked, .page-item.active .page-link, .nav-pills .nav-link.active, .progress-bar, .badge.bg-primary { background-color: #16a34a; border-color: #16a34a; }
+.form-control:focus, .form-select:focus { border-color: #16a34a; box-shadow: 0 0 0 .25rem rgba(22, 163, 74, .25); }
+a { color: #16a34a; }
+a:hover { color: #138c40; }
+/* --- end theme colour --- */
